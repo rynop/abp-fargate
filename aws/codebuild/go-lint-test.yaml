@@ -1,0 +1,17 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - env
+      - go version
+      - go get -u github.com/twitchtv/retool
+  pre_build:
+    commands:
+      # Ensure that the code passes all lint tests
+      - retool do golint -set_exit_status $CODE_ENTRY_POINT_FILE_PATH
+      - retool do golint -set_exit_status pkg/...
+      # Check for common Go problems with 'go vet'
+      - go vet ./...
+      # Run all tests included with the application
+      # - go test ./...

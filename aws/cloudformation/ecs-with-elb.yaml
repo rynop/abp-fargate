@@ -1,0 +1,481 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ECS Service with CloudFront+ELB. CF http redirect to https. ELB is http only, validate req are coming from CloudFront with custom header X-From-CDN. Resources and ECS Cluster stacks must already exist.
+Parameters:  
+  EcsCfClusterStackName:
+    Type: String
+    Description: Name of existing CF stack that manages your ECS cluster (ends with --ecs-cluster)
+
+  AcmCertificateArn:
+    Description: The ARN of a certificate from AWS Certificate Manager (ACM)
+    Type: String
+
+  TaskIamRoleArn:
+    Description: ARN of the IAM role the task will assume.  This should be an ouput of your resources cloud formation
+    Type: String     
+
+  CloudFrontCname:
+    Description: Custom domain name to use (foo.yourdomain.com)
+    Type: String
+  VerifyFromCfHeaderVal:
+    Description: A custom header X-From-CDN with val below be passed to your orgin, to verify request came 
+    Type: String    
+
+  ContainerImage:
+    Description: The docker image to use in the task definition. ex aaa.dkr.ecr.us-east-1.amazonaws.com/ryan-test:listenport
+    Type: String
+
+  SsmEnvPrefix:
+    Description: What path prefix to pull SSM params from to set as env vars for task container.  Ex:/prod/img-manip/master/ResizeImage/ecsEnvs/
+    Type: String
+
+  TaskCount:
+    Default: 1
+    Type: Number
+  TaskCpuUnits:
+    Default: "256"
+    Type: String
+    AllowedValues : ["256","512","1024","2048","4096"]
+  TaskMemory:
+    Description: "See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#cfn-ecs-taskdefinition-memory"
+    Default: "512"
+    Type: String
+    AllowedValues : ["512","1024","2048","4096","5120","6144","7168","8192"]   
+  DeploymentMinHealthyTaskPercent:
+    Type: Number
+    Default: 50
+    Description: The minimum number of tasks, specified as a percentage of the Amazon ECS service's DesiredCount value, that must continue to run and remain healthy during a deployment
+  DeploymentMaxTaskPercent:
+    Type: Number
+    Default: 200
+    Description: The maximum number of tasks, specified as a percentage of the Amazon ECS service's DesiredCount value, that can run in a service during a deployment
+
+  ServiceMaxCapacity:
+    Type: Number
+    Default: 1
+    Description: Max number of tasks to run for this service
+  ServiceMinCapacity:
+    Type: Number
+    Default: 1
+    Description: Min number of tasks to run for this service
+  ServiceScaleUpAdjustment:
+    Type: Number
+    Default: 1
+    Description: Number of tasks to scale up at a time
+  ServiceScaleDownAdjustment:
+    Type: Number
+    Default: -1
+    Description: Number of tasks to scale down at a time
+  ScaleUpCpuPeriods:
+    Type: Number
+    Default: 3
+    Description: Number of minutes to evaulate the average CPU over
+  ScaleUpCpuPercentageThreshold:
+    Type: Number
+    Default: 50
+    Description: CPU percentage threshold to scale up after ave above for ScaleUpCpuPeriods
+  ScaleDownCpuPeriods:
+    Type: Number
+    Default: 10
+    Description: Number of minutes to evaulate the average CPU over
+  ScaleDownCpuPercentageThreshold:
+    Type: Number
+    Default: 20
+    Description: CPU percentage threshold to scale down after ave below for ScaleDownCpuPeriods
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Existing ECS Cluster CloudFormation Stack Info"
+        Parameters:
+          - EcsCfClusterStackName
+
+      - Label:
+          default: "CloudFront Info"
+        Parameters:
+          - AcmCertificateArn          
+          - CloudFrontCname
+          - VerifyFromCfHeaderVal
+
+      - Label:
+          default: "Task Info"
+        Parameters:
+          - ContainerImage
+          - TaskIamRoleArn
+          - TaskCount
+          - TaskCpuUnits
+          - TaskMemory
+          - DeploymentMinHealthyTaskPercent
+          - DeploymentMaxTaskPercent
+          - ServiceMaxCapacity    
+          - ServiceMinCapacity    
+          - ServiceScaleUpAdjustment    
+          - ServiceScaleDownAdjustment    
+          - ScaleUpCpuPeriods    
+          - ScaleUpCpuPercentageThreshold    
+          - ScaleDownCpuPeriods    
+          - ScaleDownCpuPercentageThreshold      
+
+Resources:  
+  EcsSecurityGroup:    
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join [ '--', [ !Ref 'AWS::StackName', 'ECS' ] ]
+      GroupDescription: ECS Allowed ELB Ports
+      VpcId: 
+        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
+      SecurityGroupIngress: 
+        - IpProtocol: 'tcp'
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref 'ElbSecurityGroup'
+          Description: ELB
+
+#ELB Stuff  
+  ElbSecurityGroup:    
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join [ '--', [ !Ref 'AWS::StackName', 'ELB' ] ]
+      GroupDescription: ELB Allowed Ports
+      VpcId: 
+        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
+      SecurityGroupIngress:
+        - IpProtocol: 'tcp'
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: '0.0.0.0/0'
+        - IpProtocol: 'tcp'
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: '0.0.0.0/0'          
+  ELBTargetGroup:    
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: 
+        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
+      TargetType: ip
+      Port: 80
+      Protocol: HTTP
+      HealthCheckTimeoutSeconds: 2
+      HealthCheckIntervalSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+      HealthCheckPath: '/healthcheck'
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 10        
+
+  EcsElasticLoadBalancer:    
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      #not providing, limit to 32, which we hit often
+      #Name: !Join [ '-', [ !Ref 'AWS::StackName', 'ALB' ] ]
+      SecurityGroups:
+        - !Ref 'ElbSecurityGroup'
+      Subnets:
+        - Fn::ImportValue:
+            !Sub "${EcsCfClusterStackName}-PublicSubnet1"
+        - Fn::ImportValue:
+            !Sub "${EcsCfClusterStackName}-PublicSubnet2"
+        - Fn::ImportValue:
+            !Sub "${EcsCfClusterStackName}-PublicSubnet3"
+      Scheme: internet-facing
+  ELBListener:    
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref 'EcsElasticLoadBalancer'
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref 'ELBTargetGroup'              
+###END ELB Stuff
+
+###Fargate task
+  ECSTaskExeAndScaleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+              - ecs-tasks.amazonaws.com
+          Action:
+            - sts:AssumeRole    
+        - Effect: Allow
+          Action:
+            - sts:AssumeRole
+          Principal:
+            Service:
+              - application-autoscaling.amazonaws.com                    
+      Path: "/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: service-autoscaling
+          PolicyDocument:
+            Statement:
+              - Action:
+                - application-autoscaling:*
+                - cloudwatch:DescribeAlarms
+                - cloudwatch:PutMetricAlarm
+                - ecs:DescribeServices
+                - ecs:UpdateService            
+                Effect: Allow
+                Resource: '*'
+              - Action:
+                - 'ssm:DescribeParameters'
+                Effect: Allow
+                Resource: '*'
+              - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
+                - 'ssm:GetParameter*'
+                Effect: Allow
+                Resource: 
+                  - !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"              
+              - Action: #see https://docs.aws.amazon.com/kms/latest/developerguide/iam-policies.html
+                - 'kms:Decrypt'
+                Effect: Allow
+                Resource: 
+                  - !Sub "arn:aws:kms:*:${AWS::AccountId}:key/*"       
+
+  TaskLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref 'AWS::StackName'
+      RetentionInDays: 30
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities:
+        - 'FARGATE'
+      ExecutionRoleArn: !Ref ECSTaskExeAndScaleRole
+      TaskRoleArn: !Ref TaskIamRoleArn
+      Memory: !Ref TaskMemory
+      Cpu: !Ref TaskCpuUnits
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: !Join [ '--', [ !Ref 'AWS::StackName', 'container' ] ]
+        Image: !Ref ContainerImage
+        Essential: true   
+        Environment: 
+          - Name: APP_STAGE
+            Value: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ]
+          - Name: LISTEN_PORT
+            Value: '80'
+          - Name: AWS_ENV_PATH
+            Value: !Ref SsmEnvPrefix
+            #Pull rest of Env vars in via https://github.com/Droplr/aws-env         
+        PortMappings:
+        - ContainerPort: 80
+          HostPort: 80
+          Protocol: tcp
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            'awslogs-region': !Ref 'AWS::Region'
+            'awslogs-group': !Ref TaskLogGroup
+            'awslogs-stream-prefix': 'task-stream'
+####END Fargate task
+
+#### Service stuff
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: ELBListener
+    Properties:
+      LaunchType: 'FARGATE'
+      Cluster: !Ref EcsCfClusterStackName
+      ServiceName: !Join [ '--', [ !Ref 'AWS::StackName', 'service' ] ]
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref TaskCount
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: 'ENABLED'
+          SecurityGroups: 
+            - !Ref EcsSecurityGroup
+          Subnets:
+            - Fn::ImportValue:
+                !Sub "${EcsCfClusterStackName}-PrivateSubnet1"
+            - Fn::ImportValue:
+                !Sub "${EcsCfClusterStackName}-PrivateSubnet2"
+            - Fn::ImportValue:
+                !Sub "${EcsCfClusterStackName}-PrivateSubnet3"
+      DeploymentConfiguration:
+        MinimumHealthyPercent: !Ref DeploymentMinHealthyTaskPercent
+        MaximumPercent: !Ref DeploymentMaxTaskPercent   
+      LoadBalancers: 
+        - ContainerName: !Join [ '--', [ !Ref 'AWS::StackName', 'container' ] ]
+          ContainerPort: 80
+          TargetGroupArn: !Ref ELBTargetGroup        
+  ServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    DependsOn: Service
+    Properties:
+      MaxCapacity: !Ref ServiceMaxCapacity
+      MinCapacity: !Ref ServiceMinCapacity
+      ResourceId:
+        !Sub
+        - service/${ClusterName}/${ServiceName}
+        - ClusterName: !Ref EcsCfClusterStackName
+          ServiceName: !GetAtt Service.Name
+      RoleARN: !GetAtt ECSTaskExeAndScaleRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+  ServiceScaleDownPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: StageScaleDown
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        StepAdjustments:
+          - MetricIntervalUpperBound: 0
+            ScalingAdjustment: !Ref ServiceScaleDownAdjustment
+  ServiceScaleUpPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: ScaleUp
+      PolicyType: StepScaling
+      ScalingTargetId: !Ref ServiceScalingTarget
+      StepScalingPolicyConfiguration:
+        AdjustmentType: ChangeInCapacity
+        Cooldown: 60
+        StepAdjustments:
+        - MetricIntervalLowerBound: 0
+          ScalingAdjustment: !Ref ServiceScaleUpAdjustment
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Join [ '', [ 'Scale up if CPU > ', !Ref ScaleUpCpuPercentageThreshold, '% for ', !Ref ScaleUpCpuPeriods, ' minutes' ] ]
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: !Ref ScaleUpCpuPeriods
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: !Ref ScaleUpCpuPercentageThreshold
+      AlarmActions:
+        - !Ref 'ServiceScaleUpPolicy'
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref EcsCfClusterStackName
+        - Name: ServiceName
+          Value: !GetAtt Service.Name
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: !Join [ '', [ 'Scale down if CPU < ', !Ref ScaleDownCpuPercentageThreshold, '% for ', !Ref ScaleDownCpuPeriods, ' minutes' ] ]
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: '60'
+      EvaluationPeriods: !Ref ScaleDownCpuPeriods
+      ComparisonOperator: LessThanThreshold
+      Threshold: !Ref ScaleDownCpuPercentageThreshold
+      AlarmActions:
+        - !Ref 'ServiceScaleDownPolicy'
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref EcsCfClusterStackName
+        - Name: ServiceName
+          Value: !GetAtt Service.Name       
+####END Service stuff        
+
+
+#### Cloudfront and DNS stuff
+  CloudFront:  
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        IPV6Enabled: true
+        HttpVersion: http2
+        Comment: !Join [ '--', [!Ref 'AWS::StackName', ' Cloud Front']]
+        Aliases: [!Ref CloudFrontCname]
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          SslSupportMethod: sni-only
+        Origins:
+        - Id: ELBOrigin
+          DomainName: !GetAtt EcsElasticLoadBalancer.DNSName
+          CustomOriginConfig:
+            HTTPPort: 80
+            HTTPSPort: 443
+            OriginProtocolPolicy: http-only
+          OriginCustomHeaders:
+            - HeaderName: 'X-From-CDN'
+              HeaderValue: !Ref VerifyFromCfHeaderVal
+        DefaultCacheBehavior:
+          AllowedMethods: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+          CachedMethods: ["GET", "HEAD", "OPTIONS"]
+          ForwardedValues:
+            Headers:
+            - Access-Control-Request-Headers
+            - Access-Control-Request-Method
+            - Origin
+            - Authorization
+            - Host
+            QueryString: true
+          TargetOriginId: ELBOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          DefaultTTL: 0
+        CustomErrorResponses:
+        - ErrorCachingMinTTL: 0
+          ErrorCode: 400
+        - ErrorCachingMinTTL: 1
+          ErrorCode: 403
+        - ErrorCachingMinTTL: 5
+          ErrorCode: 500
+  DNSARecord:    
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      Comment: !Ref 'AWS::StackName'
+      Name: !Ref CloudFrontCname
+      Type: A
+      HostedZoneName: !Join ['.', [ !Select [1, !Split ['.', !Ref CloudFrontCname]], !Select [2, !Split ['.', !Ref CloudFrontCname]], '']]
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2
+        DNSName: !GetAtt CloudFront.DomainName
+  DNSAAAARecord:    
+    Type: "AWS::Route53::RecordSet"
+    Properties:
+      Comment: !Ref 'AWS::StackName'
+      Name: !Ref CloudFrontCname
+      Type: AAAA
+      HostedZoneName: !Join ['.', [ !Select [1, !Split ['.', !Ref CloudFrontCname]], !Select [2, !Split ['.', !Ref CloudFrontCname]], '']]
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2
+        DNSName: !GetAtt CloudFront.DomainName
+
+####END Cloudfront and DNS stuff  
+
+Outputs:
+  EcsElb:
+    Description: Load Balancer for ECS Service
+    Value: !Ref 'EcsElasticLoadBalancer'
+  ElbDnsName:
+    Description: Your ELB DNS Name
+    Value: !GetAtt EcsElasticLoadBalancer.DNSName
+  
+  CloudFront:
+    Description: CloudFront ID
+    Value: !Ref CloudFront
+  CNAME:
+    Description: Custom domain for Cloudfront
+    Value: !Ref DNSARecord
+  
+  ElbSecurityGroupId:
+    Description: ELB Security Group ID
+    Value: !Ref ElbSecurityGroup
+  EcsSecurityGroupId:
+    Description: ECS Security Group ID
+    Value: !Ref EcsSecurityGroup  
+
+  Version:
+    Description: ECS Cloudformation template version
+    Value: 1.0.0

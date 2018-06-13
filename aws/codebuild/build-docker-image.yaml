@@ -1,0 +1,23 @@
+version: 0.2
+
+phases:
+  install:
+    commands:   
+      - env               
+  pre_build:
+    commands:
+      - $(aws ecr get-login --region $AWS_DEFAULT_REGION)
+  build:
+    commands:
+      - CODE_PATH="$(dirname $CODE_ENTRY_POINT_FILE_PATH)"
+      - IMAGE_TAG="$(echo $CODE_PATH | sed 's|/|-|')"-`date -u +"%Y-%m-%dT%H_%M_%SZ"`
+      - echo Build started on $IMAGE_TAG
+      - sed -i "s/--CodeImage--/${IMAGE_TAG}/" ${CODE_ENTRY_POINT_FILE_PATH}
+      - docker build --build-arg CODE_PATH=${CODE_PATH} -f ${DOCKERFILE_PATH} -t ${IMAGE_REPO_NAME}:${IMAGE_TAG} .
+      - docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}
+  post_build:
+    commands:
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - printf '{"CodeImage":"%s"}' ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG} > ${CODEBUILD_SRC_DIR}/build.json
+artifacts:
+  files: build.json
