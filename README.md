@@ -4,16 +4,19 @@
 
 ## Setup
 
-1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example:
+1. Copy this repo to yours: `wget -qO- https://github.com/rynop/abp-fargate/archive/master.zip | bsdtar -xf-; mv abp-fargate-master/* .; rm -r abp-fargate-master`
+1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
+1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From `build` dir run:
     1. `aws ecr get-login --no-include-email --region us-east-1`
-    1. `docker build -t ecs-test/master:initial .`
-    1. `docker tag ecs-test/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/ecs-test/master:initial`
-    1. `docker push 1111.dkr.ecr.us-east-1.amazonaws.com/ecs-test/master:initial`
-1. Use [vpc-ecs-cluster-resources.yaml](./aws/cloudformation/vpc-ecs-cluster-resources.yaml) to create an ECS Cluster inside its own VPC. This cluster will run all your stages (task per stage). CloudFormation stack naming convention: `<project>--ecs-cluster`
-1. Setup your environment variables in [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters).  We recommend using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  Ex: `/prod/abp-fargate/master/ResizeImage/ecsEnvs/MY_KEY`
+    1. `docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial .`
+    1. `docker tag abp-fargate/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial`
+    1. `docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial`
+1. Create a new CloudFormation stack using [vpc-ecs-cluster-resources.yaml](./aws/cloudformation/vpc-ecs-cluster-resources.yaml).  This creates an ECS Cluster inside its own VPC. This cluster will run your `test`,`staging`,`prod` stages (task per stage). CloudFormation stack naming convention: `<project>--ecs-cluster`
+1. Setup your environment variables in [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters).  We recommend using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  
+    *  `X_FROM_CDN` is required if using ELB (see below).  Ex: `aws ssm put-parameter --name '/test/abp-fargate/master/imgManip/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'` (remember to do this for `staging` and `prod` stages too)
 1.  Create a Github user (acct will just be used to read repos for CI/CD), give it read auth to your github repo.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
-1. Review **Code Specifics** below
-1. Set stage specific parameters in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  These are passed by the CI/CD stack to create each stage's CloudFormation stack.
+1. Review **Code Specifics** [below](https://github.com/rynop/abp-fargate#code-specifics)
+1. Set stage specific parameters in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  These are passed by the CI/CD stack to create each stage's CloudFormation stack.  Make sure to set `VerifyFromCfHeaderVal` to the value use set in your `X_FROM_CDN` env var above (if using ELB).
 1. Use [cloudformation-test-staging-prod.yaml](https://github.com/rynop/aws-blueprint/blob/master/pipelines/cicd/cloudformation-test-staging-prod.yaml) to create a codepipeline that builds a docker image and updates ECS cluster with stage promotion approval. CloudFormation stack naming convention: `<app>--<branch>--<service>`.  The pipeline will create a CloudFormation stack for each stage (`test`,`staging`,`prod`).
     1. Param `RelCloudFormationTemplatePath`: if your app needs an ELB specify `aws/cloudformation/fargate-with-elb.yaml`. (located [here](./aws/cloudformation/fargate-with-elb.yaml) if you want to look) otherwise, specify `aws/cloudformation/fargate-no-elb.yaml` (located [here](./aws/cloudformation/fargate-no-elb.yaml) if you want to look). 
     1. If using `fargate-with-elb.yaml` your app **MUST**:
@@ -29,7 +32,6 @@ This example is using golang and the [Twirp RPC framework](https://github.com/tw
 We recommend using [retool](https://github.com/twitchtv/retool) to manage your tools (like (dep)[https://github.com/golang/dep]).  Why?  If you work with anyone else on your project, and they have different versions of their tools, everything turns to shit.
 
 1. Update [Dockerfile](./build/Dockerfile) to set your github repo.
-1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
 1. (Install retool)[https://github.com/twitchtv/retool#usage]: `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
 1. These commands should be run in your go projects
     1.  `retool add github.com/golang/dep/cmd/dep origin/master`
