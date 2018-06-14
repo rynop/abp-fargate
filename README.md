@@ -1,6 +1,6 @@
 # abp-fargate
 
-[aws-blueprint](https://github.com/rynop/aws-blueprint) aws-blueprint example for a ECS fargate based app, with or without an ELB
+[aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS fargate based app, with or without an ELB
 
 ## Setup
 
