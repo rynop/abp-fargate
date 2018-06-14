@@ -1,11 +1,11 @@
 {
     "Parameters": {
-        "EcsCfClusterStackName": "example--ecs-cluster",
+        "EcsCfClusterStackName": "abp-fargate--ecs-cluster",
         "CloudFrontCname": "prod--example.rynop.com",
         "VerifyFromCfHeaderVal": "fromCDN",
         "AcmCertificateArn": "arn:aws:acm:us-east-1:111:certificate/22222-2a50-4e70-b9f0-8f71585ce17b",
-        "TaskIamRoleArn": "arn:aws:iam::11111:role/service-role/code-build-GoPlayground-service-role",
-        "SsmEnvPrefix": "/prod/img-manip/master/ResizeImage/ecsEnvs/",
+        "TaskIamRoleArn": "app-resources.yaml prod CloudFormation Output key TaskIamRoleArn",
+        "SsmEnvPrefix": "/prod/abp-fargate/master/ResizeImage/ecsEnvs/",
         "TaskCount": "1",
         "TaskCpuUnits": "256",
         "TaskMemory": "512",
