@@ -18,7 +18,6 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     1. `docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial .`
     1. `docker tag abp-fargate/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial`
     1. `docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial`
-1. TODO: set versionid in vpc-ecs-cluster.yaml    
 1. Create a new CloudFormation stack using [vpc-ecs-cluster.yaml](./aws/cloudformation/vpc-ecs-cluster.yaml).  This creates an ECS Cluster inside its own VPC. This cluster will run your `test`,`staging`,`prod` stages (task per stage). CloudFormation stack naming convention: `<project>--ecs-cluster`
 1. Setup your environment variables in [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters).  We recommend using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  
     *  `X_FROM_CDN` is required if using ELB (see below).  Ex: `aws ssm put-parameter --name '/test/abp-fargate/master/imgManip/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'` (remember to do this for `staging` and `prod` stages too)
