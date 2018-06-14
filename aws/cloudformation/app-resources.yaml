@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  A simple example of how to create an ecs task role with basic permissions
+
+Resources:
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+        - Effect: "Allow"
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Action:
+            - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: !Join [ '-', [ !Ref 'AWS::StackName', 'service', 'policy' ] ]
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'sns:Get*'
+            Resource: '*'          
+
+Outputs:
+  TaskIamRoleArn:
+    Description: The IAM role for ECS task
+    Value: !Sub arn:aws:iam::${AWS::AccountId}:role/${EcsTaskRole}

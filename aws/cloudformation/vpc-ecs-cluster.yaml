@@ -9,12 +9,29 @@ Description: >
   with ECS hosts distributed across multiple Availability Zones. 
 
   Last Modified: 22nd September 2016 Author: Paul Maddox <pmaddox@amazon.com>
+
+Parameters:
+  NestedStacksS3Bucket:
+    Description: The name of the versioned S3 bucket you created to hold nested stack temlpates
+    Type: String
+    Default: us-east-1--aws-blueprint.yourdomain.com
+
+Mappings: 
+  NestedStacks: 
+    infrastructure: 
+      "vpc": "vpc/three-sub-nat-gateway.yaml?versionid=YourS3VersionId"
+      "secgroups": "security-groups/ecs-in-vpc.yaml?versionid=YourS3VersionId"  
+      "ecscluster": "ecs/cluster-in-vpc.yaml?versionid=YourS3VersionId" 
+
 Resources:
   VPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: >-
-        https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/vpc.yaml?versionid=WH_GYYQbsoadVDXO9Lqv0vhBWzpV0raw
+      TemplateURL: !Sub 
+        - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
+        - { url: !FindInMap [NestedStacks, infrastructure, vpc] }
+
+        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/vpc.yaml?versionid=WH_GYYQbsoadVDXO9Lqv0vhBWzpV0raw
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VpcCIDR: 10.180.0.0/16
@@ -27,16 +44,22 @@ Resources:
   SecurityGroups:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: >-
-        https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/security-groups.yaml?versionid=BWH8JIRBkP.LggGolE1d6lqUO1_UnQGt
+      TemplateURL: !Sub 
+        - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
+        - { url: !FindInMap [NestedStacks, infrastructure, singleApigCustomDomain] }
+
+        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/security-groups.yaml?versionid=BWH8JIRBkP.LggGolE1d6lqUO1_UnQGt
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
   ECS:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: >-
-        https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/ecs-cluster.yaml?versionid=a7EedtHDRl1jpwm4IWcjdbacOQeBZuUp
+      TemplateURL: !Sub 
+        - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
+        - { url: !FindInMap [NestedStacks, infrastructure, ecscluster] }
+
+        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/ecs-cluster.yaml?versionid=a7EedtHDRl1jpwm4IWcjdbacOQeBZuUp
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         InstanceType: c5.large
