@@ -1,10 +1,17 @@
 # abp-fargate
 
-[aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS fargate based app, with or without an ELB
+An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS fargate based app, with or without an ELB
 
 ## Setup
 
-1. Copy this repo to yours: `wget -qO- https://github.com/rynop/abp-fargate/archive/master.zip | bsdtar -xf-; mv abp-fargate-master/* .; rm -r abp-fargate-master`
+1. Run the setup script from your local git repo dir: 
+    ```
+    wget -q https://raw.githubusercontent.com/rynop/abp-fargate/master/bin/setup.sh; bash setup.sh; rm setup.sh
+    ```
+
+    This:
+    *  Copies this code in this repo to yours
+    *  Sets `NestedStacksS3Bucket` and s3 versions of your `nested-stacks` in your [vpc-ecs-cluster](./aws/cloudformation/vpc-ecs-cluster.yaml) file.
 1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
 1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From `build` dir run:
     1. `aws ecr get-login --no-include-email --region us-east-1`
@@ -17,7 +24,7 @@
     *  `X_FROM_CDN` is required if using ELB (see below).  Ex: `aws ssm put-parameter --name '/test/abp-fargate/master/imgManip/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'` (remember to do this for `staging` and `prod` stages too)
 1.  Create a Github user (acct will just be used to read repos for CI/CD), give it read auth to your github repo.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
 1. Review **Code Specifics** [below](https://github.com/rynop/abp-fargate#code-specifics)
-1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  Create one of these for `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--aws-blueprint--master--imgManip--r`
+1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  Create one of these for `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--abp-fargate--master--imgManip--r`
 1. Set stage specific parameters in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  These are passed by the CI/CD stack to create each stage's CloudFormation stack.  Make sure to set `VerifyFromCfHeaderVal` to the value use set in your `X_FROM_CDN` env var above (if using ELB).
 1. Use [cloudformation-test-staging-prod.yaml](https://github.com/rynop/aws-blueprint/blob/master/pipelines/cicd/cloudformation-test-staging-prod.yaml) to create a codepipeline that builds a docker image and updates ECS cluster with stage promotion approval. CloudFormation stack naming convention: `<app>--<branch>--<service>`.  The pipeline will create a CloudFormation stack for each stage (`test`,`staging`,`prod`).
     1. Param `RelCloudFormationTemplatePath`: if your app needs an ELB specify `aws/cloudformation/fargate-with-elb.yaml`. (located [here](./aws/cloudformation/fargate-with-elb.yaml) if you want to look) otherwise, specify `aws/cloudformation/fargate-no-elb.yaml` (located [here](./aws/cloudformation/fargate-no-elb.yaml) if you want to look). 
