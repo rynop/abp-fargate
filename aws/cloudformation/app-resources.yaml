@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: >
-  A simple example of how to create an ecs task role with basic permissions
+  A simple example of how to create an ecs task role with permissions to get env out of SSM
 
 Resources:
   EcsTaskRole:
@@ -22,10 +22,20 @@ Resources:
         PolicyDocument:
           Version: 2012-10-17
           Statement:
-          - Effect: Allow
-            Action:
-            - 'sns:Get*'
-            Resource: '*'          
+            - Action:
+              - 'iam:PassRole'
+              - 'ssm:DescribeParameters'
+              Effect: Allow
+              Resource: '*'            
+            - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
+              - 'ssm:GetParameter*'
+              Effect: Allow
+              Resource: 
+                - !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"               
+            - Effect: Allow
+              Action:
+              - 'sns:Get*'
+              Resource: '*'          
 
 Outputs:
   TaskIamRoleArn:

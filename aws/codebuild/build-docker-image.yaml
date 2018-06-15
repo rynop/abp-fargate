@@ -12,7 +12,7 @@ phases:
       - CODE_PATH="$(dirname $CODE_ENTRY_POINT_FILE_PATH)"
       - IMAGE_TAG="$(echo $CODE_PATH | sed 's|/|-|')"-`date -u +"%Y-%m-%dT%H_%M_%SZ"`
       - echo Build started on $IMAGE_TAG
-      # - sed -i "s/--CodeImage--/${IMAGE_TAG}/" ${CODE_ENTRY_POINT_FILE_PATH}
+      - sed -i "s/--CodeImage--/${IMAGE_TAG}/" ${CODE_ENTRY_POINT_FILE_PATH}
       - docker build --build-arg CODE_PATH=${CODE_PATH} -f ${DOCKERFILE_PATH} -t ${IMAGE_REPO_NAME}:${IMAGE_TAG} .    
 
       - docker tag ${IMAGE_REPO_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${IMAGE_REPO_NAME}:${IMAGE_TAG}
