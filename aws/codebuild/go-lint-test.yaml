@@ -9,13 +9,13 @@ phases:
       - env
       - go version
       - go get -u github.com/twitchtv/retool
-  pre_build:
-    commands:
-      # Ensure that the code passes all lint tests
       - mkdir -p "/go/src/$(dirname ${GO_PACKAGE})"
       - ln -s "${CODEBUILD_SRC_DIR}" "/go/src/${GO_PACKAGE}"    
       - echo "/go/src/${GO_PACKAGE}"
-      - ls -al "/go/src/${GO_PACKAGE}"        
+      - ls -al "/go/src/${GO_PACKAGE}"          
+  pre_build:
+    commands:
+      # Ensure that the code passes all lint tests  
       - retool do golint -set_exit_status $CODE_ENTRY_POINT_FILE_PATH
       - retool do golint -set_exit_status pkg/...
       # Check for common Go problems with 'go vet'
