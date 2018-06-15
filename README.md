@@ -52,11 +52,13 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
 1. Update [Dockerfile](./build/Dockerfile) to set your github repo.
 1. (Install retool)[https://github.com/twitchtv/retool#usage]: `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
 1. These commands should be run in your go projects
-    1.  `retool add github.com/golang/dep/cmd/dep origin/master`
-    1.  `retool add github.com/golang/lint/golint origin/master`
-    1.  `retool add github.com/golang/protobuf/protoc-gen-go origin/master`
-    1.  `retool add github.com/twitchtv/twirp/protoc-gen-twirp origin/v6_prerelease`    
-    1.  `retool do dep ensure`.  If this was a new repo you'd run `retool do dep init`
+    ```
+    retool add github.com/golang/dep/cmd/dep origin/master
+    retool add github.com/golang/lint/golint origin/master
+    retool add github.com/golang/protobuf/protoc-gen-go origin/master
+    retool add github.com/twitchtv/twirp/protoc-gen-twirp origin/v6_prerelease
+    retool do dep ensure`.  If this was a new repo you'd run `retool do dep init
+    ```
 1. Add dependency example: `retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go`
 1.  Auto-generate the code:
 ```
