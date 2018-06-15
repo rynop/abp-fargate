@@ -15,9 +15,6 @@ chkreqs() {
     
     command -v aws > /dev/null
     test $? -ne 0 && abort "aws cli required"
-    
-    command -v jq > /dev/null
-    test $? -ne 0 && abort "jq (https://stedolan.github.io/jq/) required"
 }
 
 chkreqs
@@ -51,7 +48,7 @@ log 'Download code' 'done'
 declare -a stackPaths=("vpc/three-sub-nat-gateway.yaml" "security-groups/ecs-in-vpc.yaml" "ecs/cluster-in-vpc.yaml")
 
 for stackPath in "${stackPaths[@]}"; do
-    S3VER=$(aws ${awsCliParams} s3api list-object-versions --bucket ${nestedStacksS3Bucket} --prefix nested-stacks/${stackPath} | jq -r '.Versions[] | select(.IsLatest == true) | .VersionId')
+    S3VER=$(aws ${awsCliParams} s3api list-object-versions --bucket ${nestedStacksS3Bucket} --prefix nested-stacks/${stackPath} --query 'Versions[?IsLatest].[VersionId]' --output text)
     test -z "${S3VER}" && abort "Unable to find nested stack version at s3://${nestedStacksS3Bucket}/nested-stacks/${stackPath} See https://github.com/rynop/aws-blueprint/tree/master/nested-stacks"
     sed -i "s|${stackPath}?versionid=YourS3VersionId|${stackPath}?versionid=$S3VER|" aws/cloudformation/vpc-ecs-cluster.yaml
 done

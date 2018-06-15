@@ -1,7 +1,7 @@
 version: 0.2
 env:
   variables:
-    GO_PKG: "github.com/rynop/apb-fargate"
+    GO_PACKAGE: "github.com/rynop/apb-fargate"
 
 phases:
   install:
