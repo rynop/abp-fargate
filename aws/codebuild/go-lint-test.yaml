@@ -1,4 +1,7 @@
 version: 0.2
+env:
+  variables:
+    GO_PKG: "github.com/rynop/apb-fargate"
 
 phases:
   install:
@@ -8,12 +11,11 @@ phases:
       - go get -u github.com/twitchtv/retool
   pre_build:
     commands:
-      - PACKAGE="github.com/rynop/apb-fargate"
-      - mkdir -p "/go/src/$(dirname ${PACKAGE})"
-      - ln -s "${CODEBUILD_SRC_DIR}" "/go/src/${PACKAGE}"    
-      - echo "/go/src/${PACKAGE}"
-      - ls -al "/go/src/${PACKAGE}"  
       # Ensure that the code passes all lint tests
+      - mkdir -p "/go/src/$(dirname ${GO_PACKAGE})"
+      - ln -s "${CODEBUILD_SRC_DIR}" "/go/src/${GO_PACKAGE}"    
+      - echo "/go/src/${GO_PACKAGE}"
+      - ls -al "/go/src/${GO_PACKAGE}"        
       - retool do golint -set_exit_status $CODE_ENTRY_POINT_FILE_PATH
       - retool do golint -set_exit_status pkg/...
       # Check for common Go problems with 'go vet'

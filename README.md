@@ -52,6 +52,7 @@ This example is using golang and the [Twirp RPC framework](https://github.com/tw
 We recommend using [retool](https://github.com/twitchtv/retool) to manage your tools (like [dep](https://github.com/golang/dep)).  Why?  If you work with anyone else on your project, and they have different versions of their tools, everything turns to shit.
 
 1. Update [./build/Dockerfile](./build/Dockerfile) to set your github org and repo.
+1. Update [./aws/codebuild/go-lint-test.yaml](./aws/codebuild/go-lint-test.yaml) to set your github org and repo (`GO_PKG`).
 1. [Install retool](https://github.com/twitchtv/retool#usage): `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
 1. Run:
     ```
