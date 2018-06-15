@@ -46,7 +46,7 @@ Resources:
     Properties:
       TemplateURL: !Sub 
         - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
-        - { url: !FindInMap [NestedStacks, infrastructure, singleApigCustomDomain] }
+        - { url: !FindInMap [NestedStacks, infrastructure, secgroups] }
 
         # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/security-groups.yaml?versionid=BWH8JIRBkP.LggGolE1d6lqUO1_UnQGt
       Parameters:
