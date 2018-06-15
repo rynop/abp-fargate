@@ -47,28 +47,34 @@ We use [Systems manager parameter store](https://console.aws.amazon.com/systems-
 
 This example is using golang and the [Twirp RPC framework](https://github.com/twitchtv/twirp).  Project layout is based on [golang-standards/project-layout](https://github.com/golang-standards/project-layout)
 
-We recommend using [retool](https://github.com/twitchtv/retool) to manage your tools (like (dep)[https://github.com/golang/dep]).  Why?  If you work with anyone else on your project, and they have different versions of their tools, everything turns to shit.
+We recommend using [retool](https://github.com/twitchtv/retool) to manage your tools (like [dep](https://github.com/golang/dep)).  Why?  If you work with anyone else on your project, and they have different versions of their tools, everything turns to shit.
 
-1. Update [Dockerfile](./build/Dockerfile) to set your github repo.
-1. (Install retool)[https://github.com/twitchtv/retool#usage]: `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
-1. These commands should be run in your go projects
+1. Update [./build/Dockerfile](./build/Dockerfile) to set your github org and repo.
+1. [Install retool](https://github.com/twitchtv/retool#usage): `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
+1. Run:
     ```
     retool add github.com/golang/dep/cmd/dep origin/master
     retool add github.com/golang/lint/golint origin/master
     retool add github.com/golang/protobuf/protoc-gen-go origin/master
     retool add github.com/twitchtv/twirp/protoc-gen-twirp origin/v6_prerelease
-    retool do dep ensure`.  If this was a new repo you'd run `retool do dep init
+    retool do dep init  #If this was existing code you'd run `retool do dep ensure`
     ```
-1. Add dependency example: `retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go`
-1.  Auto-generate the code:
-```
-retool do protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/publicservices/service.proto 
-retool do protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/adminservices/service.proto 
-```    
+1. Add dependency example: 
+    ```
+    retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
+    ```
+1. Auto-generate the code:
+    ```
+    retool do protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/publicservices/service.proto 
+    retool do protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/adminservices/service.proto 
+    ```    
 1. For this example, the interface implementations have been hand created in `pkg/`. Take a look.
-1. Example to consume twirp API in this example: `curl -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: <your VerifyFromCfHeaderVal>' -d '{"term":"wahooo"}' https://<--r output CNAME>/com.rynop.twirpl.publicservices.Image/CreateGiphy`
+1. Example to consume twirp API in this example: 
+    ```
+    curl -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: <your VerifyFromCfHeaderVal>' -d '{"term":"wahooo"}' https://<--r output CNAME>/com.rynop.twirpl.publicservices.Image/CreateGiphy
+    ```
 
-Testing locally:
+## Testing locally:
 1.  Set `LOCAL_LISTEN_PORT` and `X_FROM_CDN` env vars. (Fish: `set -gx LOCAL_LISTEN_PORT 8080`, `set -gx X_FROM_CDN localTest`)
 1.  Build & run: `cd cmd/example-webservices`, `go build -o /tmp/main .; /tmp/main`
 1.  Hit endpoint: `curl -v -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: localTest' -d '{"term":"wahooo"}' http://localhost:8080/com.rynop.twirpl.publicservices.Image/CreateGiphy`
@@ -76,4 +82,6 @@ Testing locally:
 
 ## Building docker image locally
 
-From your project room run: `docker build -f build/Dockerfile -t <repo>/<branch>:<tag>`
+```
+docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial .
+```
