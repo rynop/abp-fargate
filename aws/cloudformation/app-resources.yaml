@@ -25,6 +25,7 @@ Resources:
             - Action:
               - 'iam:PassRole'
               - 'ssm:DescribeParameters'
+              - 'ssm:GetParametersByPath'
               Effect: Allow
               Resource: '*'            
             - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
