@@ -2,7 +2,7 @@
     "Parameters": {
         "EcsCfClusterStackName": "abp-fargate--ecs-cluster",
         "CloudFrontCname": "test--example.rynop.com",
-        "VerifyFromCfHeaderVal": "value you set in SSM for X_FROM_CDN for test",
+        "VerifyFromCfHeaderVal": "If using elb, value you set in SSM for X_FROM_CDN for test",
         "AcmCertificateArn": "arn:aws:acm:us-east-1:111:certificate/22222-2a50-4e70-b9f0-8f71585ce17b",
         "TaskIamRoleArn": "app-resources.yaml test CloudFormation Output key TaskIamRoleArn",
         "SsmEnvPrefix": "/test/abp-fargate/master/ResizeImage/ecsEnvs/",
