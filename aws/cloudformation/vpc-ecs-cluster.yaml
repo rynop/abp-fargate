@@ -1,14 +1,13 @@
 Description: >
 
-  This template deploys a VPC, with a pair of public and private subnets spread 
-  across two Availabilty Zones. It deploys an Internet Gateway, with a default 
+  This template deploys a VPC, 3 pub and private subnets. It deploys an Internet Gateway, with a default 
   route on the public subnets. It deploys a pair of NAT Gateways (one in each
-  AZ),  and default routes for them in the private subnets.
+  AZ), and default routes for them in the private subnets.
 
   It then deploys a highly available ECS cluster using an AutoScaling Group,
-  with ECS hosts distributed across multiple Availability Zones. 
+  with ECS hosts distributed across multiple Availability Zones.
 
-  Last Modified: 22nd September 2016 Author: Paul Maddox <pmaddox@amazon.com>
+  3 zones were chosen because every region has at least 3 
 
 Parameters:
   NestedStacksS3Bucket:
@@ -16,12 +15,50 @@ Parameters:
     Type: String
     Default: us-east-1--aws-blueprint.yourdomain.com
 
+VpcCIDR:
+    Type: String
+    Default: 11.1.0.0/16
+
+  PublicSubnet1CIDR:
+    Type: String
+    Default: 11.1.32.0/20
+  PublicSubnet2CIDR:
+    Type: String
+    Default: 11.1.96.0/20
+  PublicSubnet3CIDR:
+    Type: String
+    Default: 11.1.160.0/20
+
+  PrivateSubnet1CIDR:
+    Type: String
+    Default: 11.1.0.0/19
+  PrivateSubnet2CIDR:
+    Type: String
+    Default: 11.1.64.0/19
+  PrivateSubnet3CIDR:
+    Type: String
+    Default: 11.1.128.0/19
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "VPC"
+        Parameters:
+          - VpcCIDR
+          - PublicSubnet1CIDR
+          - PublicSubnet2CIDR
+          - PublicSubnet3CIDR
+          - PrivateSubnet1CIDR
+          - PrivateSubnet2CIDR
+          - PrivateSubnet3CIDR
+
 Mappings: 
   NestedStacks: 
     infrastructure: 
-      "vpc": "vpc/three-sub-nat-gateway.yaml?versionid=YourS3VersionId"
-      "secgroups": "security-groups/ecs-in-vpc.yaml?versionid=YourS3VersionId"  
-      "ecscluster": "ecs/cluster-in-vpc.yaml?versionid=YourS3VersionId" 
+      "vpc": "vpc/three-sub-nat-gateway.yaml?versionid=724MmqUCXNQ1QbOx_dLTm5K173olP3uw"
+      "secgroups": "security-groups/ecs-in-vpc.yaml?versionid=PH.mw2mByzEamzyZqk6NaqGuKQq.L._z"  
+      "ecscluster": "ecs/cluster-in-vpc.yaml?versionid=jGkTHl5Fhzh2.IROI9ETiyuYSxnadVmG" 
 
 Resources:
   VPC:
@@ -34,13 +71,13 @@ Resources:
         # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/vpc.yaml?versionid=WH_GYYQbsoadVDXO9Lqv0vhBWzpV0raw
       Parameters:
         EnvironmentName: !Ref AWS::StackName
-        VpcCIDR: 10.180.0.0/16
-        PublicSubnet1CIDR: 10.180.8.0/21
-        PublicSubnet2CIDR: 10.180.16.0/21
-        PublicSubnet3CIDR: 10.180.24.0/21
-        PrivateSubnet1CIDR: 10.180.32.0/21
-        PrivateSubnet2CIDR: 10.180.40.0/21
-        PrivateSubnet3CIDR: 10.180.48.0/21
+        VpcCIDR: !Ref VpcCIDR
+        PublicSubnet1CIDR: !Ref PublicSubnet1CIDR
+        PublicSubnet2CIDR: !Ref PublicSubnet2CIDR
+        PublicSubnet3CIDR: !Ref PublicSubnet3CIDR
+        PrivateSubnet1CIDR: !Ref PrivateSubnet1CIDR
+        PrivateSubnet2CIDR: !Ref PrivateSubnet2CIDR
+        PrivateSubnet3CIDR: !Ref PrivateSubnet3CIDR
   SecurityGroups:
     Type: AWS::CloudFormation::Stack
     Properties:
