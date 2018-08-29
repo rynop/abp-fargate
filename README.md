@@ -40,7 +40,7 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
 
 ### Enviornment variables
 
-We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  
+We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  `APP_STAGE` and `LISTEN_PORT` will automatically be set inside your container when running in ECS.
 
 `X_FROM_CDN` is required if using an ELB - remember to do this for `staging` and `prod` stages too.
 
