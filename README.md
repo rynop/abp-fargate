@@ -13,7 +13,7 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     *  Copies this code in this repo to yours
     *  Sets `NestedStacksS3Bucket` and s3 versions of your `nested-stacks` in your [vpc-ecs-cluster](./aws/cloudformation/vpc-ecs-cluster.yaml) file.
 1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
-1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From `build` dir run:
+1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From git repo root run:
     ```
     aws ecr get-login --no-include-email --region us-east-1
     docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial
