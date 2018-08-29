@@ -50,6 +50,8 @@ We use [Systems manager parameter store](https://console.aws.amazon.com/systems-
 aws ssm put-parameter --name '/test/abp-fargate/master/imgManip/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'
 ```
 
+You can use [this helper script](https://github.com/rynop/aws-blueprint/blob/master/bin/fargate-ssm-env-var-helper.sh) to generate a bash script that will run the `aws ssm` commands for you.
+
 ### Code specifics
 
 This example is using golang and the [Twirp RPC framework](https://github.com/twitchtv/twirp).  Project layout is based on [golang-standards/project-layout](https://github.com/golang-standards/project-layout)
