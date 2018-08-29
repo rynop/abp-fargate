@@ -105,3 +105,11 @@ Resources:
         SecurityGroup: !GetAtt SecurityGroups.Outputs.ECSHostSecurityGroup
         Subnets: !GetAtt VPC.Outputs.PrivateSubnets
 
+Outputs:
+  Version:
+    Description: ECS cluster in a VPC
+    Value: 1.0.0
+
+  VpcEcsClusterStackName:
+    Description: This stack name
+    Value: !Ref AWS::StackName
