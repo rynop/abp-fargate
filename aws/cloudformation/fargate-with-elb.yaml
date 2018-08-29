@@ -3,7 +3,7 @@ Description: ECS Service with CloudFront+ELB. CF http redirect to https. ELB is 
 Parameters:  
   EcsCfClusterStackName:
     Type: String
-    Description: Name of existing CF stack that manages your ECS cluster (ends with --ecs-cluster)
+    Description: value of VpcEcsClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
 
   AcmCertificateArn:
     Description: The ARN of a certificate from AWS Certificate Manager (ACM)
