@@ -13,10 +13,10 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     *  Copies this code in this repo to yours
     *  Sets `NestedStacksS3Bucket` and s3 versions of your `nested-stacks` in your [vpc-ecs-cluster](./aws/cloudformation/vpc-ecs-cluster.yaml) file.
 1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
-1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From `build` dir run:
+1. Create an ECS [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<app>/<branch>`. Populate it with an inital image. See [build/Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From git repo root run:
     ```
     aws ecr get-login --no-include-email --region us-east-1
-    docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial
+    docker build --build-arg CODE_PATH=cmd/example-webservices -f ./build/Dockerfile -t abp-fargate/master:initial .
     docker tag abp-fargate/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
     docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
     ```
@@ -40,7 +40,9 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
 
 ### Enviornment variables
 
-We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars into your container.  
+We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. The `SsmEnvPrefix` parameter in `aws/cloudformation/parameters/*.json` defines this path.  [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars from SSM into your container.  
+
+`APP_STAGE` and `LISTEN_PORT` will automatically be set inside your container when running in ECS.
 
 `X_FROM_CDN` is required if using an ELB - remember to do this for `staging` and `prod` stages too.
 
