@@ -42,14 +42,14 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
 
 ### Enviornment variables
 
-We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/<app>/ecsEnvs/<env var name>`. The `SsmEnvPrefix` parameter in `aws/cloudformation/parameters/*.json` defines this path.  [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars from SSM into your container.  
+We use [Systems manager parameter store](https://console.aws.amazon.com/systems-manager/parameters) to define environment variables, using the namespace convention `/<stage>/<repoName>/<branch>/ecsEnvs/<env var name>`. The `SsmEnvPrefix` parameter in `aws/cloudformation/parameters/*.json` defines this path.  [aws-env](https://github.com/Droplr/aws-env) is used to load the env vars from SSM into your container.  
 
 `APP_STAGE` and `LISTEN_PORT` will automatically be set inside your container when running in ECS.
 
 `X_FROM_CDN` is required if using an ELB - remember to do this for `staging` and `prod` stages too.
 
 ```
-aws ssm put-parameter --name '/test/abp-fargate/master/imgManip/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'
+aws ssm put-parameter --name '/test/abp-fargate/master/ecsEnvs/X_FROM_CDN' --type 'String' --value 'fromCDN'
 ```
 
 You can use [this helper script](https://github.com/rynop/aws-blueprint/blob/master/bin/fargate-ssm-env-var-helper.sh) to generate a bash script that will run the `aws ssm` commands for you.
