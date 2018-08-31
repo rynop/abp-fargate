@@ -4,8 +4,12 @@ Parameters:
   EcsCfClusterStackName:
     Type: String
     Description: value of VpcEcsClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
-
-  AcmCertificateArn:
+  
+    AuroraVPCSecurityGroup:
+    Type: String
+    Description: ID of AuroraVPCSecurityGroup security group from app-resources.yaml
+  
+    AcmCertificateArn:
     Description: The ARN of a certificate from AWS Certificate Manager (ACM)
     Type: String
 
@@ -130,6 +134,23 @@ Resources:
           ToPort: 80
           SourceSecurityGroupId: !Ref 'ElbSecurityGroup'
           Description: ELB
+      Tags: 
+          - Key: Name
+            Value: !Sub ${AWS::StackName}-ecs-continers
+          - Key: Stage
+            Value: !Sub 
+              - ${Stage}
+              - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }          
+  
+  EcsContainerToAuroraVpcSecurityGroupInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId: !Ref EcsSecurityGroup
+      GroupId: !Ref AuroraVPCSecurityGroup
+      Description: fargate containers          
 
 #ELB Stuff  
   ElbSecurityGroup:    
