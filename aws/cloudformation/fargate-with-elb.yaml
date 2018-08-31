@@ -147,7 +147,14 @@ Resources:
         - IpProtocol: 'tcp'
           FromPort: '80'
           ToPort: '80'
-          CidrIp: '0.0.0.0/0'          
+          CidrIp: '0.0.0.0/0'    
+      Tags: 
+          - Key: Name
+            Value: !Sub ${AWS::StackName}-fromelb
+          - Key: Stage
+            Value: !Sub 
+              - ${Stage}
+              - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }                 
   ELBTargetGroup:    
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
