@@ -5,11 +5,11 @@ Parameters:
     Type: String
     Description: value of VpcEcsClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
   
-    AuroraVPCSecurityGroup:
+  AuroraVPCSecurityGroup:
     Type: String
     Description: ID of AuroraVPCSecurityGroup security group from app-resources.yaml
   
-    AcmCertificateArn:
+  AcmCertificateArn:
     Description: The ARN of a certificate from AWS Certificate Manager (ACM)
     Type: String
 
