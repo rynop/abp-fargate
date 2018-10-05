@@ -15,7 +15,7 @@ Parameters:
     Type: String
     Default: us-east-1--aws-blueprint.yourdomain.com
 
-VpcCIDR:
+  VpcCIDR:
     Type: String
     Default: 11.1.0.0/16
 
