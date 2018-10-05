@@ -198,7 +198,7 @@ Resources:
       DesiredCount: !Ref TaskCount
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: ENABLED'
+          AssignPublicIp: ENABLED
           Subnets:
             - Fn::ImportValue:
                 !Sub "${EcsCfClusterStackName}-PrivateSubnet1"
