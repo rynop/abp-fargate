@@ -66,7 +66,7 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
 1. Run:
     ```
     retool add github.com/golang/dep/cmd/dep origin/master
-    retool add github.com/golang/lint/golint origin/master
+    retool add golang.org/x/lint/golint origin/master
     retool add github.com/golang/protobuf/protoc-gen-go origin/master
     retool add github.com/twitchtv/twirp/protoc-gen-twirp origin/v6_prerelease
     retool do dep init  #If this was existing code you'd run `retool do dep ensure`
