@@ -188,6 +188,20 @@ Resources:
 ####END task
 
 #### Service stuff
+  EcsSecurityGroup:    
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join [ '--', [ !Ref 'AWS::StackName', 'ECS' ] ]
+      GroupDescription: ECS Allowed Ports
+      VpcId: 
+        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
+      Tags: 
+          - Key: Name
+            Value: !Sub ${AWS::StackName}-ecs-continers
+          - Key: Stage
+            Value: !Sub 
+              - ${Stage}
+              - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }          
   Service:
     Type: AWS::ECS::Service
     Properties:
@@ -199,6 +213,8 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
+          SecurityGroups: 
+            - !Ref EcsSecurityGroup
           Subnets:
             - Fn::ImportValue:
                 !Sub "${EcsCfClusterStackName}-PrivateSubnet1"
