@@ -15,6 +15,16 @@ Parameters:
     Type: String
     Default: us-east-1--aws-blueprint.yourdomain.com
 
+  InstanceType:
+    Description: Which instance type should we use to build the ECS cluster?
+    Type: String
+    Default: c5.large
+
+  ClusterSize:
+    Description: How many ECS hosts do you want to initially deploy?
+    Type: Number
+    Default: 0
+
   VpcCIDR:
     Type: String
     Default: 11.1.0.0/16
@@ -99,8 +109,8 @@ Resources:
         # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/ecs-cluster.yaml?versionid=a7EedtHDRl1jpwm4IWcjdbacOQeBZuUp
       Parameters:
         EnvironmentName: !Ref AWS::StackName
-        InstanceType: c5.large
-        ClusterSize: 2
+        InstanceType: !Ref InstanceType
+        ClusterSize: !Ref ClusterSize
         VPC: !GetAtt VPC.Outputs.VPC
         SecurityGroup: !GetAtt SecurityGroups.Outputs.ECSHostSecurityGroup
         Subnets: !GetAtt VPC.Outputs.PrivateSubnets
