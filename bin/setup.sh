@@ -61,8 +61,6 @@ test $? -eq 0 && abort "Unable to set your nested-stack template S3 versions"
 
 cat <<TheMsg
 
-Values for attrs in aws/cloudformation/parameters/*--ecs-codepipeline-parameters.json:
-
-S3BucketForLambdaPackageZips: $nestedStacksS3Bucket
+Values for CF attrs in: aws/cloudformation/parameters/*--ecs-codepipeline-parameters.json
 
 TheMsg
