@@ -1,0 +1,17 @@
+version: 0.2
+env:
+  variables:
+    SOME_KEY: "someVal"
+
+phases:
+  install:
+    commands:
+      - env      
+      - yarn --version
+      - node --version
+      # - yarn install : dont run, node_modules checked in
+      - npm rebuild
+  build:
+    commands:
+      - yarn run lint
+      #- yarn run build  #build is done inside dockerfile
