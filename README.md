@@ -13,6 +13,8 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     *  Copies this code in this repo to yours
     *  Sets `NestedStacksS3Bucket` and s3 versions of your `nested-stacks` in your [vpc-ecs-cluster](./aws/cloudformation/vpc-ecs-cluster.yaml) and [aws-resources](./aws/cloudformation/aws-resources.yaml) .
 1. Update the code to use your go package, by doing an extended find and replace of all occurances of `rynop/abp-fargate` with your golang package namespace.
+1. Review **Code Specifics** [below](https://github.com/rynop/abp-fargate#code-specifics)
+1. Define **Environment variables** [below](https://github.com/rynop/abp-fargate#enviornment-variables)
 1. Create an ECR [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<git repo name>/<branch>`.
 
     Populate it with an inital image. See [Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From git repo root run:
@@ -23,8 +25,6 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
     ```
 1. Create a new CloudFormation stack using [./aws/cloudformation/vpc-ecs-cluster.yaml](./aws/cloudformation/vpc-ecs-cluster.yaml).  This creates an ECS Cluster inside its own VPC. This cluster will run your `test`,`staging`,`prod` stages (task per stage). CloudFormation stack naming convention: `<project>--ecs-cluster`. Ex: `imgManip--ecs-cluster`
-1. Review **Code Specifics** [below](https://github.com/rynop/abp-fargate#code-specifics)
-1. Define **Environment variables** [below](https://github.com/rynop/abp-fargate#enviornment-variables)
 1. Create a Github user (acct will just be used to read repos for CI/CD), give it read auth to your github repo.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
 1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  Create one of these for `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--abp-fargate--master--imgManip--r`
 1. Set stage specific parameters in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  These are passed by the CI/CD stack to create each stage's CloudFormation stack.
