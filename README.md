@@ -83,7 +83,7 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
     ```
 
 ## Testing locally:
-1.  Set `LOCAL_LISTEN_PORT` and `X_FROM_CDN` env vars. (Fish: `set -gx LOCAL_LISTEN_PORT 8080`, `set -gx X_FROM_CDN localTest`)
+1.  Set `LOCAL_LISTEN_PORT` and `X_FROM_CDN` env vars. (Fish: `set -gx LOCAL_LISTEN_PORT 8080; set -gx X_FROM_CDN localTest`)
 1.  Build & run: `cd cmd/example-webservices; go build -o /tmp/main .; /tmp/main`
 1.  Hit endpoint: `curl -v -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: localTest' -d '{"term":"wahooo"}' http://localhost:8080/com.rynop.twirpl.publicservices.Image/CreateGiphy`
 
