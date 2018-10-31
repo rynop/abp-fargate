@@ -71,10 +71,6 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
     retool add github.com/twitchtv/twirp/protoc-gen-twirp origin/v6_prerelease
     retool do dep init  #If this was existing code you'd run `retool do dep ensure`
     ```
-1. Add dependency example: 
-    ```
-    retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
-    ```
 1. Auto-generate the code:
     ```
     retool do protoc --proto_path=$GOPATH/src:. --twirp_out=. --go_out=. ./rpc/publicservices/service.proto 
@@ -91,6 +87,11 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
 1.  Build & run: `cd cmd/example-webservices`, `go build -o /tmp/main .; /tmp/main`
 1.  Hit endpoint: `curl -v -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: localTest' -d '{"term":"wahooo"}' http://localhost:8080/com.rynop.twirpl.publicservices.Image/CreateGiphy`
 
+
+## Add dependency example: 
+ ```
+retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
+```
 
 ## Building docker image locally
 
