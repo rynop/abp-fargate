@@ -20,7 +20,7 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     Populate it with an inital image. See [Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From git repo root run:
     ```
     aws ecr get-login --no-include-email --region us-east-1
-    docker build --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
+    docker build -f build/Dockerfile --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
     docker tag abp-fargate/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
     docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
     ```
@@ -100,5 +100,5 @@ retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
 ## Building docker image locally
 
 ```
-docker build --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
+docker build -f build/Dockerfile --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
 ```
