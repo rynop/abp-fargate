@@ -12,7 +12,7 @@ Description: >
   NestedStacksS3Bucket:
     Description: The name of the versioned S3 bucket you created to hold nested stack temlpates
     Type: String
-    Default: us-east-1--aws-blueprint.loanos.io
+    Default: YourAWSBlueprintNestedStacksBucket
 
   DbName:
     Description: The Db name
@@ -188,7 +188,41 @@ Resources:
             - Effect: Allow
               Action:
               - 'sns:Get*'
-              Resource: '*'          
+              Resource: '*'      
+      - PolicyName: S3Access
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Action:
+              - "s3:*"
+              Effect: Allow
+              Resource:
+                - !GetAtt SampleS3Bucket.Arn
+                - !Sub 
+                  - "${bucketArn}*"
+                  - { bucketArn: !GetAtt SampleS3Bucket.Arn }              
+
+####S3
+  SampleS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true  
+    Properties:
+      BucketName: !Sub 
+        - ${AWS::Region}--${Stage}--${Branch}--abpfargate.awsblueprint.io
+        - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ], Branch: !Select [ "2", !Split [ '--', !Ref 'AWS::StackName' ] ] }
+      # ReplicationConfiguration:
+      #   Role: !GetAtt [WorkItemBucketBackupRole, Arn]
+      #   Rules:
+      #   - Destination:
+      #       Bucket: !Join ['', ['arn:aws:s3:::', !Join ['-', [!Ref 'AWS::Region', !Ref 'AWS::StackName', replicationbucket]]]]
+      #       StorageClass: STANDARD
+      #     Id: Backup
+      #     Prefix: ''
+      #     Status: Enabled
+      VersioningConfiguration:
+        Status: Enabled
+####End S3
+
 ####Aurora
   AuroraVPCSecurityGroup:
     Type: AWS::EC2::SecurityGroup

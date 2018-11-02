@@ -6,7 +6,7 @@
         "VerifyFromCfHeaderVal": "If using elb, value you set in SSM for X_FROM_CDN for prod",
         "AcmCertificateArn": "arn:aws:acm:us-east-1:111:certificate/22222-2a50-4e70-b9f0-8f71585ce17b",
         "TaskIamRoleArn": "app-resources.yaml prod CloudFormation Output key TaskIamRoleArn",
-        "SsmEnvPrefix": "/prod/abp-fargate/master/ResizeImage/ecsEnvs/",
+        "SsmEnvPrefix": "/prod/abp-fargate/master/ecsEnvs/",
         "TaskCount": "1",
         "TaskCpuUnits": "256",
         "TaskMemory": "512",
