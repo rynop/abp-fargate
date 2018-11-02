@@ -17,25 +17,31 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
 1. Define **Environment variables** [below](https://github.com/rynop/abp-fargate#enviornment-variables)
 1. Create an ECR [image repository](https://console.aws.amazon.com/ecs/home?region=us-east-1#/repositories).  Naming convention `<git repo name>/<branch>`.
 
-    Populate it with an inital image. See [Dockerfile](./build/Dockerfile) for an example (make sure to set `GITHUB_ORG`,`REPO`).  From git repo root run:
+    Populate it with an inital image using your updated [Dockerfile](./Dockerfile).  Here is an example using your git `master` branch (run from git repo root):
     ```
-    aws ecr get-login --no-include-email --region us-east-1
-    docker build -f build/Dockerfile --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
-    docker tag abp-fargate/master:initial 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
-    docker push 1111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master:initial
+    awsCliProfileName=default
+    gitRepoName=abp-fargate
+    ecrRepositoryURI=11111.dkr.ecr.us-east-1.amazonaws.com/abp-fargate/master
+    $(aws ecr get-login --no-include-email --region us-east-1 --profile $awsCliProfileName)
+    docker build --build-arg CODE_PATH=cmd/example-webservices -t $gitRepoName/master:initial .
+    docker tag $gitRepoName/master:initial $ecrRepositoryURI:initial
+    docker push $ecrRepositoryURI:initial
     ```
-1. Create a new CloudFormation stack using [./aws/cloudformation/vpc-ecs-cluster.yaml](./aws/cloudformation/vpc-ecs-cluster.yaml).  This creates an ECS Cluster inside its own VPC. This cluster will run your `test`,`staging`,`prod` stages (task per stage). CloudFormation stack naming convention: `<project>--ecs-cluster`. Ex: `imgManip--ecs-cluster`
-1. Create a Github user (acct will just be used to read repos for CI/CD), give it read auth to your github repo.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
-1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  Create one of these for `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--abp-fargate--master--imgManip--r`
-1. Set stage specific parameters in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  These are passed by the CI/CD stack to create each stage's CloudFormation stack.
-1. Use [cloudformation-test-staging-prod.yaml](https://github.com/rynop/aws-blueprint/blob/master/pipelines/cicd/cloudformation-test-staging-prod.yaml) to create a codepipeline CI/CD that builds a docker image and updates ECS cluster with stage promotion approval. CloudFormation stack naming convention: `[repo]--[branch]--[service]--cicd`.  The pipeline will create a CloudFormation stack for each stage (`test`,`staging`,`prod`).
-    1. Param `RelCloudFormationTemplatePath`: if your app needs an ELB specify `aws/cloudformation/fargate-with-elb.yaml`. (located [here](./aws/cloudformation/fargate-with-elb.yaml) if you want to look) otherwise, specify `aws/cloudformation/fargate-no-elb.yaml` (located [here](./aws/cloudformation/fargate-no-elb.yaml) if you want to look). 
+1. Create an ECS Cluster, follow **ECS Cluster Specifics** [below](https://github.com/rynop/abp-fargate#ecs-cluster-specifics).  Note: if you have multiple Docker services from multiple git repos, you may only have to do this one.  See below.
+1. Create a Github user (acct will just be used to read repos for CI/CD), **give it read auth to your github repo**.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
+1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  A stack for each of: `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--abp-fargate--master--imgManip--r`
+1. Set stage specific parameters for each file in [./aws/cloudformation/parameters](./aws/cloudformation/parameters/).  The CI/CD (created below) will pass these params to [fargate-[with|no]-elb.yaml](./aws/cloudformation/) to create each stage's CloudFormation stack. Param `EcsCfClusterStackName` is the CloudFormation output value of `VpcEcsClusterStackName` from step 6 above.  You can delete the `-elb.yaml` file you don't need.
+1. Create an SNS topic for CI/CD code promotion approvals. Topic name: `<git repo>-approval`. Subscribe your email address to it.
+1. Use [cloudformation-test-staging-prod.yaml](https://github.com/rynop/aws-blueprint/blob/master/pipelines/cicd/cloudformation-test-staging-prod.yaml) to create a CodePipeline CI/CD that builds a docker image and updates ECS cluster with stage promotion approval. CloudFormation stack naming convention: `[repo]--[branch]--[service]--cicd`.  The pipeline will create a CloudFormation stack for each stage (`test`,`staging`,`prod`).
+    1. Param `RelCloudFormationTemplatePath`: if your app needs an ELB specify [`aws/cloudformation/fargate-with-elb.yaml`](./aws/cloudformation/fargate-with-elb.yaml) otherwise, specify [`aws/cloudformation/fargate-no-elb.yaml`](./aws/cloudformation/fargate-no-elb.yaml). 
     1. If using `fargate-with-elb.yaml` your app **MUST**:
         * [accept health checks](./cmd/example-webservices/main.go#L29) at `/healthcheck`
         * [Verify](./pkg/serverhooks/main.go#L38) the value of the `X-From-CDN` header matches the value you set in the `VerifyFromCfHeaderVal` parameter in [`<stage>--ecs-codepipeline-parameters.json`](./aws/cloudformation/parameters/)
         * Edit your cloudfront > dist settings > change Security policy to `TLSv1.1_2016`.  CloudFormation does not support this parameter yet.
         * Create a DNS entry in route53 for production that consumers will use.  The cloud formation creates one for `prod--` but you do not want to use this as the CloudFormation can be deleted.
-1. Deploy your code, CodePipeline will run.  Once `test` stage is successfully executed test sample code via:
+    1. Param `CodeEntryPointFilePath` is `cmd/example-webservices/main.go` for this example
+    1. Param `RelDockerfilePath` is `Dockerfile` (it is at the root of this repo)
+1. Make a source code change and `git push` to github. CodePipeline (CI/CD) will automatically run.  Once `test` stage is successfully executed (This will take 45 minutes on first deploy because CloudFormation initial creation), test sample code via:
     ```
     curl -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: [your X_FROM_CDN env value]' -d '{"term":"wahooo"}' https://[CloudFormation Output CNAME from test--[repo]--[branch]-[service]--fargagte]/com.rynop.twirpl.publicservices.Image/CreateGiphy
     ```        
@@ -64,7 +70,7 @@ This example is using golang and the [Twirp RPC framework](https://github.com/tw
 
 We recommend using [retool](https://github.com/twitchtv/retool) to manage your tools (like [dep](https://github.com/golang/dep)).  Why?  If you work with anyone else on your project, and they have different versions of their tools, everything turns to shit.
 
-1. Update [./build/Dockerfile](./build/Dockerfile) to set your github org and repo.
+1. Update [Dockerfile](./Dockerfile). Make sure to set `GITHUB_ORG`,`REPO`.  Also take a look at [.dockerignore](.dockerignore)
 1. Update [./aws/codebuild/go-lint-test.yaml](./aws/codebuild/go-lint-test.yaml) to set your github org and repo (`GO_PKG`).
 1. [Install retool](https://github.com/twitchtv/retool#usage): `go get github.com/twitchtv/retool`. Make sure to add `$GOPATH/bin` to your PATH
 1. Run:
@@ -85,6 +91,21 @@ We recommend using [retool](https://github.com/twitchtv/retool) to manage your t
     ```
     curl -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: <your VerifyFromCfHeaderVal>' -d '{"term":"wahooo"}' https://<--r output CNAME>/com.rynop.twirpl.publicservices.Image/CreateGiphy
     ```
+### ECS Cluster Specifics
+
+Create an ECS cluster in its own VPC by using [./aws/cloudformation/vpc-ecs-cluster.yaml](./aws/cloudformation/vpc-ecs-cluster.yaml).  This cluster will run your `test`,`staging`,`prod` stages (task per stage). CloudFormation stack naming convention: `<eyeCatcher for logical grouping of applications>--ecs-cluster`. 
+
+The naming convention here is a bit confusing, so let me explain a bit.  It is my intention to allow multiple Docker containers to run in one ECR cluster.  For example, if you are writing a blog platform you may have the following git repos - each with their own `Dockerfile`:
+
+*  `internal-api`
+*  `external-api`
+*  `batch-processing`
+
+This ECS cluster CloudFormation stack name could be: `blog-platform--ecs-cluster`. The 3 git repos above, would each follow the `abp-blueprint` steps in this readme EXCEPT for this step (creating the ECS cluster).  They would each have their own CI/CD, have their own ECS service and task(s).  However they would all run inside one ECS cluster.  The "magic" of this is done by setting the param `EcsCfClusterStackName` in . The value of `EcsCfClusterStackName` is the CloudFormation output value of `VpcEcsClusterStackName` from the ECS Cluster CloudFormation (`blog-platform--ecs-cluster` in this example).
+
+It is up to you which git repo houses [./aws/cloudformation/vpc-ecs-cluster.yaml](./aws/cloudformation/vpc-ecs-cluster.yaml).
+
+To summarize, my intention was to leave it up to the architect to determine if he/she wants multiple docker containers running in the same ECS or not.  You can absolutely run a `1:1` Docker (one git repo) container to ECS cluster - but it is not required.
 
 ## Testing locally:
 1.  Set `LOCAL_LISTEN_PORT` and `X_FROM_CDN` env vars. (Fish: `set -gx LOCAL_LISTEN_PORT 8080; set -gx X_FROM_CDN localTest`)
@@ -100,5 +121,5 @@ retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
 ## Building docker image locally
 
 ```
-docker build -f build/Dockerfile --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
+docker build --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
 ```

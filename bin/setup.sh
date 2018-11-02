@@ -59,6 +59,12 @@ log 'Set s3 versionIds in aws/cloudformation/vpc-ecs-cluster.yaml' 'done'
 grep YourS3VersionId aws/cloudformation/vpc-ecs-cluster.yaml
 test $? -eq 0 && abort "Unable to set your nested-stack template S3 versions"
 
+sed -i "s|YourAWSBlueprintNestedStacksBucket|${nestedStacksS3Bucket}|" aws/cloudformation/app-resources.yaml
+log 'Set NestedStacksS3Bucket in aws/cloudformation/app-resources.yaml' 'done'
+
+sed -i "s|YourAWSBlueprintNestedStacksBucket|${nestedStacksS3Bucket}|" aws/cloudformation/vpc-ecs-cluster.yaml
+log 'Set NestedStacksS3Bucket in aws/cloudformation/vpc-ecs-cluster.yaml' 'done'
+
 cat <<TheMsg
 
 Values for CF attrs in: aws/cloudformation/parameters/*--ecs-codepipeline-parameters.json

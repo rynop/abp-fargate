@@ -4,8 +4,7 @@ Description: >
   route on the public subnets. It deploys a pair of NAT Gateways (one in each
   AZ), and default routes for them in the private subnets.
 
-  It then deploys a highly available ECS cluster using an AutoScaling Group,
-  with ECS hosts distributed across multiple Availability Zones.
+  It then deploys an ECS cluster, to be used with Fargate
 
   3 zones were chosen because every region has at least 3 
 
@@ -13,17 +12,7 @@ Parameters:
   NestedStacksS3Bucket:
     Description: The name of the versioned S3 bucket you created to hold nested stack temlpates
     Type: String
-    Default: us-east-1--aws-blueprint.yourdomain.com
-
-  InstanceType:
-    Description: Which instance type should we use to build the ECS cluster?
-    Type: String
-    Default: c5.large
-
-  ClusterSize:
-    Description: How many ECS hosts do you want to initially deploy?
-    Type: Number
-    Default: 0
+    Default: YourAWSBlueprintNestedStacksBucket
 
   VpcCIDR:
     Type: String
@@ -62,13 +51,16 @@ Metadata:
           - PrivateSubnet1CIDR
           - PrivateSubnet2CIDR
           - PrivateSubnet3CIDR
+      - Label:
+          default: "Your AWS Blueprint nested-stacks bucket"
+        Parameters:
+          - NestedStacksS3Bucket       
 
 Mappings: 
   NestedStacks: 
     infrastructure: 
-      "vpc": "vpc/three-sub-nat-gateway.yaml?versionid=724MmqUCXNQ1QbOx_dLTm5K173olP3uw"
-      "secgroups": "security-groups/ecs-in-vpc.yaml?versionid=PH.mw2mByzEamzyZqk6NaqGuKQq.L._z"  
-      "ecscluster": "ecs/cluster-in-vpc.yaml?versionid=jGkTHl5Fhzh2.IROI9ETiyuYSxnadVmG" 
+      "vpc": "vpc/three-sub-nat-gateway.yaml?versionid=YourS3VersionId"
+      "secgroups": "security-groups/ecs-in-vpc.yaml?versionid=YourS3VersionId"  
 
 Resources:
   VPC:
@@ -77,8 +69,6 @@ Resources:
       TemplateURL: !Sub 
         - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
         - { url: !FindInMap [NestedStacks, infrastructure, vpc] }
-
-        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/vpc.yaml?versionid=WH_GYYQbsoadVDXO9Lqv0vhBWzpV0raw
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VpcCIDR: !Ref VpcCIDR
@@ -94,26 +84,14 @@ Resources:
       TemplateURL: !Sub 
         - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
         - { url: !FindInMap [NestedStacks, infrastructure, secgroups] }
-
-        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/security-groups.yaml?versionid=BWH8JIRBkP.LggGolE1d6lqUO1_UnQGt
       Parameters:
         EnvironmentName: !Ref AWS::StackName
         VPC: !GetAtt VPC.Outputs.VPC
-  ECS:
-    Type: AWS::CloudFormation::Stack
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
     Properties:
-      TemplateURL: !Sub 
-        - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
-        - { url: !FindInMap [NestedStacks, infrastructure, ecscluster] }
-
-        # https://s3.amazonaws.com/cf.yourdomain.com/infrastructure/ecs-cluster.yaml?versionid=a7EedtHDRl1jpwm4IWcjdbacOQeBZuUp
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        InstanceType: !Ref InstanceType
-        ClusterSize: !Ref ClusterSize
-        VPC: !GetAtt VPC.Outputs.VPC
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.ECSHostSecurityGroup
-        Subnets: !GetAtt VPC.Outputs.PrivateSubnets
+        ClusterName: !Ref AWS::StackName
 
 Outputs:
   Version:
@@ -123,3 +101,7 @@ Outputs:
   VpcEcsClusterStackName:
     Description: This stack name
     Value: !Ref AWS::StackName
+
+  EcsClusterName:
+    Description: ECS Cluster name
+    Value: !Ref ECSCluster
