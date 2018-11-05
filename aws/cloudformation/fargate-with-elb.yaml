@@ -271,7 +271,6 @@ Resources:
   TaskLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Ref 'AWS::StackName'
       RetentionInDays: 30
 
   TaskDefinition:
@@ -308,12 +307,12 @@ Resources:
             'awslogs-stream-prefix': 'task-stream'
 ####END Fargate task
 
-#### Service stuff
+#### ECS Service stuff
   Service:
     Type: AWS::ECS::Service
     DependsOn: ELBListener
     Properties:
-      LaunchType: 'FARGATE'
+      LaunchType: FARGATE
       Cluster: !Ref EcsCfClusterStackName
       ServiceName: !Join [ '--', [ !Ref 'AWS::StackName', 'service' ] ]
       TaskDefinition: !Ref TaskDefinition

@@ -27,6 +27,10 @@ An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS far
     docker tag $gitRepoName/master:initial $ecrRepositoryURI:initial
     docker push $ecrRepositoryURI:initial
     ```
+1. **One time step**: Create ECS service linked role.  Only need to do this once per AWS account. 
+    ```
+    aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com --profile
+    ```
 1. Create an ECS Cluster, follow **ECS Cluster Specifics** [below](https://github.com/rynop/abp-fargate#ecs-cluster-specifics).  Note: if you have multiple Docker services from multiple git repos, you may only have to do this one.  See below.
 1. Create a Github user (acct will just be used to read repos for CI/CD), **give it read auth to your github repo**.  Create a personal access token for this user at https://github.com/settings/tokens.  This token will be used by the CI/CD to pull code.
 1. Create a CloudFormation stack for your resources (dynamo,s3, etc).  You must also define an IAM role for your ECS tasks.  Use [./aws/cloudformation/app-resources.yaml](./aws/cloudformation/app-resources.yaml).  A stack for each of: `test`, `staging` and `prod`.  Naming convention `[stage]--[repo]--[branch]--[eyecatcher]--r`.  Ex `test--abp-fargate--master--imgManip--r`
