@@ -2,6 +2,10 @@
 
 An [aws-blueprint](https://github.com/rynop/aws-blueprint) example for a ECS fargate based app, with or without an ELB
 
+## Prerequisites
+
+There are a handful of necessary steps prior to running any aws-blueprint enviornment. These only need to be done once.  You can find the instructions [here](https://github.com/rynop/aws-blueprint/blob/master/README.md#prerequisites).
+
 ## Setup
 
 1. Run the setup script from your local git repo dir: 
