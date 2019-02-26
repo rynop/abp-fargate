@@ -1,10 +1,8 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 
-Description: >
-  example ecs task role with permissions to get env out of SSM. Also shows how to connect to aurora in vpc
+Description: example ecs task role with permissions to get env out of SSM. Also shows how to connect to aurora in vpc
 
-  Parameters:
-
+Parameters:
   EcsCfClusterStackName:
     Type: String
     Description: value of EcsCfClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
@@ -22,14 +20,14 @@ Description: >
     AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
     ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
   DbUsername:
-    AllowedPattern: "[a-zA-Z0-9]+"
+    AllowedPattern: '[a-zA-Z0-9]+'
     ConstraintDescription: must be between 1 to 16 alphanumeric characters.
     Description: The Db admin account user name, between 1 to 16 alphanumeric characters.
     MaxLength: 16
     MinLength: 1
     Type: String
   DbPassword:
-    AllowedPattern: "[a-zA-Z0-9]+"
+    AllowedPattern: '[a-zA-Z0-9]+'
     ConstraintDescription: must be between 8 to 41 alphanumeric characters.
     Description: The Db admin account password, between 8 to 41 alphanumeric characters.
     MaxLength: 41
@@ -39,7 +37,7 @@ Description: >
   DbInstanceClass:
     Default: db.t2.small
     Type: String
-    Description: "Db instance class"
+    Description: 'Db instance class'
     ConstraintDescription: DB instance class not supported
     AllowedValues:
       - db.t2.small
@@ -50,7 +48,7 @@ Description: >
       - db.r4.2xlarge
       - db.r4.4xlarge
       - db.r4.8xlarge
-      - db.r4.16xlarge  
+      - db.r4.16xlarge
 
   DbCreateReplicaInstance:
     Default: false
@@ -60,7 +58,7 @@ Description: >
     AllowedValues:
       - true
       - false
-  
+
   DbAlarmMaxCpuPercent:
     Description: Db CPU % max for alarm
     Type: Number
@@ -118,18 +116,18 @@ Description: >
     ConstraintDescription: Only true or false are allowed
     AllowedValues:
       - true
-      - false 
+      - false
 
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Stack config"
+          default: 'Stack config'
         Parameters:
           - EcsCfClusterStackName
           - NestedStacksS3Bucket
       - Label:
-          default: "Aurora config"
+          default: 'Aurora config'
         Parameters:
           - DbName
           - DbUsername
@@ -146,70 +144,74 @@ Metadata:
           - DbAlarmEvaluationPeriodSeconds
           - DbEnhancedMonitoring
 
-Conditions: 
-  CreateStagingResources: !Equals [ !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ], prod ]
+Conditions:
+  CreateStagingResources:
+    !Equals [!Select ['0', !Split ['--', !Ref 'AWS::StackName']], prod]
 
-Mappings: 
-  NestedStacks: 
-    infrastructure:       
-      "aurora": "rds/aurora.yaml?versionid=YourS3VersionId"
+Mappings:
+  NestedStacks:
+    infrastructure:
+      'aurora': 'rds/aurora.yaml?versionid=YourS3VersionId'
 
 Resources:
   EcsTaskRole:
     Type: AWS::IAM::Role
-    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true      
+    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true
     Properties:
       AssumeRolePolicyDocument:
         Version: 2008-10-17
         Statement:
-        - Effect: "Allow"
-          Principal:
-            Service:
-            - ecs-tasks.amazonaws.com
-          Action:
-            - sts:AssumeRole
-      Path: "/"
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: '/'
       Policies:
-      - PolicyName: !Join [ '-', [ !Ref 'AWS::StackName', 'service', 'policy' ] ]
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-            - Action:
-              - 'iam:PassRole'
-              - 'ssm:DescribeParameters'
-              - 'ssm:GetParametersByPath'
-              Effect: Allow
-              Resource: '*'            
-            - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
-              - 'ssm:GetParameter*'
-              Effect: Allow
-              Resource: 
-                - !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"               
-            - Effect: Allow
-              Action:
-              - 'sns:Get*'
-              Resource: '*'      
-      - PolicyName: S3Access
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-            - Action:
-              - "s3:*"
-              Effect: Allow
-              Resource:
-                - !GetAtt SampleS3Bucket.Arn
-                - !Sub 
-                  - "${bucketArn}*"
-                  - { bucketArn: !GetAtt SampleS3Bucket.Arn }              
+        - PolicyName: !Join ['-', [!Ref 'AWS::StackName', 'service', 'policy']]
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 'iam:PassRole'
+                  - 'ssm:DescribeParameters'
+                  - 'ssm:GetParametersByPath'
+                Effect: Allow
+                Resource: '*'
+              - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
+                  - 'ssm:GetParameter*'
+                Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:ssm:*:${AWS::AccountId}:parameter/*'
+              - Effect: Allow
+                Action:
+                  - 'sns:Get*'
+                Resource: '*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 's3:*'
+                Effect: Allow
+                Resource:
+                  - !GetAtt SampleS3Bucket.Arn
+                  - !Sub
+                    - '${bucketArn}*'
+                    - { bucketArn: !GetAtt SampleS3Bucket.Arn }
 
-####S3
+  ####S3
   SampleS3Bucket:
     Type: AWS::S3::Bucket
-    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true  
+    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true
     Properties:
-      BucketName: !Sub 
+      BucketName: !Sub
         - ${AWS::Region}--${Stage}--${Branch}--abpfargate.awsblueprint.io
-        - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ], Branch: !Select [ "2", !Split [ '--', !Ref 'AWS::StackName' ] ] }
+        - {
+            Stage: !Select ['0', !Split ['--', !Ref 'AWS::StackName']],
+            Branch: !Select ['2', !Split ['--', !Ref 'AWS::StackName']],
+          }
       # ReplicationConfiguration:
       #   Role: !GetAtt [WorkItemBucketBackupRole, Arn]
       #   Rules:
@@ -221,24 +223,24 @@ Resources:
       #     Status: Enabled
       VersioningConfiguration:
         Status: Enabled
-####End S3
+  ####End S3
 
-####Aurora
+  ####Aurora
   AuroraVPCSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true
-    Properties: 
-      VpcId: 
-        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub '${EcsCfClusterStackName}-VPC'
       GroupDescription: Access aurora in VPC
-      Tags: 
-          - Key: Name
-            Value: !Sub ${AWS::StackName}-aurora-access
-          - Key: Stage
-            Value: !Sub 
-              - ${Stage}
-              - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }
-  
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-aurora-access
+        - Key: Stage
+          Value: !Sub
+            - ${Stage}
+            - { Stage: !Select ['0', !Split ['--', !Ref 'AWS::StackName']] }
+
   # Allow access from ec2 instance in this security group (ex: so we can use ec2 jumpoint to use mysql client from home)
   AuroraVpcSecurityGroupInboundRule:
     Type: AWS::EC2::SecurityGroupIngress
@@ -254,14 +256,14 @@ Resources:
     DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true
     DependsOn: AuroraVPCSecurityGroup
     Properties:
-      TemplateURL: !Sub 
+      TemplateURL: !Sub
         - https://s3.${AWS::Region}.amazonaws.com/${NestedStacksS3Bucket}/nested-stacks/${url}
         - { url: !FindInMap [NestedStacks, infrastructure, aurora] }
       Parameters:
         DatabaseSecurityGroupId: !Ref AuroraVPCSecurityGroup
-        DatabaseSubnets: 
-          Fn::ImportValue: !Sub "${EcsCfClusterStackName}-PrivateSubnets"
-        DatabaseName: !Ref DbName              
+        DatabaseSubnets:
+          Fn::ImportValue: !Sub '${EcsCfClusterStackName}-PrivateSubnets'
+        DatabaseName: !Ref DbName
         DatabaseUser: !Ref DbUsername
         DatabasePassword: !Ref DbPassword
         DatabaseEngine: 'aurora'
@@ -276,9 +278,9 @@ Resources:
         EnhancedMonitoring: !Ref DbEnhancedMonitoring
         DatabaseAlarmSwapUsageInBytes: !Ref DbAlarmSwapUsageInBytes
         EnableAlarms: !Ref DbEnableAlarms
-        Stage: !Sub 
+        Stage: !Sub
           - ${Stage}
-          - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }
+          - { Stage: !Select ['0', !Split ['--', !Ref 'AWS::StackName']] }
 ####End Aurora
 
 Outputs:

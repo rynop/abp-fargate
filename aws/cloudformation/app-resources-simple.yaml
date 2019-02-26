@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: example ecs task role with permissions to get env out of SSM. Also shows how to connect to aurora in vpc
+
+Parameters:
+  EcsCfClusterStackName:
+    Type: String
+    Description: value of EcsCfClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: 'Stack config'
+        Parameters:
+          - EcsCfClusterStackName
+      
+Conditions:
+  CreateStagingResources:
+    !Equals [!Select ['0', !Split ['--', !Ref 'AWS::StackName']], prod]
+
+Resources:
+  EcsTaskRole:
+    Type: AWS::IAM::Role
+    DeletionPolicy: 'Delete' #TODO: https://forums.aws.amazon.com/post!post.jspa?forumID=92&threadID=152800&messageID=859017&reply=true
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: '/'
+      Policies:
+        - PolicyName: !Join ['-', [!Ref 'AWS::StackName', 'service', 'policy']]
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - 'iam:PassRole'
+                  - 'ssm:DescribeParameters'
+                  - 'ssm:GetParametersByPath'
+                Effect: Allow
+                Resource: '*'
+              - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
+                  - 'ssm:GetParameter*'
+                Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:ssm:*:${AWS::AccountId}:parameter/*'
+              - Effect: Allow
+                Action:
+                  - 'sns:Get*'
+                Resource: '*'
+
+Outputs:
+  TaskIamRoleArn:
+    Description: The IAM role for ECS task
+    Value: !Sub arn:aws:iam::${AWS::AccountId}:role/${EcsTaskRole}
