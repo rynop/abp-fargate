@@ -1,24 +1,24 @@
 version: 0.2
-env:
-  variables:
-    GO_PACKAGE: "github.com/rynop/apb-fargate"
 
 phases:
   install:
     commands:
+      # PACKAGE example github.com/rynop/image-manip
+      - PACKAGE="github.com/${GITHUB_ORG}/${REPO}"
       - env
       - go version
       - go get -u github.com/twitchtv/retool
-      - mkdir -p "/go/src/$(dirname ${GO_PACKAGE})"
-      - ln -s "${CODEBUILD_SRC_DIR}" "/go/src/${GO_PACKAGE}"    
-      - echo "/go/src/${GO_PACKAGE}"
-      - ls -al "/go/src/${GO_PACKAGE}"          
+      - mkdir -p "/go/src/$(dirname ${PACKAGE})"
+      - ln -s "${CODEBUILD_SRC_DIR}" "/go/src/${PACKAGE}"    
+      - echo "/go/src/${PACKAGE}"
+      - ls -al "/go/src/${PACKAGE}" 
+      - ls -al "/go/src/${PACKAGE}/" 
   pre_build:
     commands:
       # Ensure that the code passes all lint tests  
       - retool do golint -set_exit_status $CODE_ENTRY_POINT_FILE_PATH
       - retool do golint -set_exit_status pkg/...
-      - cd "/go/src/${GO_PACKAGE}"
+      - cd "/go/src/${PACKAGE}"
       # Check for common Go problems with 'go vet'
       - go vet ./...
       # Run all tests included with the application
