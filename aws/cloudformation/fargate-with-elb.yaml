@@ -17,9 +17,18 @@ Parameters:
     Description: ARN of the IAM role the task will assume.  This should be an ouput of your resources cloud formation
     Type: String     
 
+  CreateCloudFront:
+    Description: Create CloudFront? If this aws env is being created for a feature branch, may not want to wait 30 mins for CDN creation.  If false, make sure to manually set X-FROM-CDN header in your HTTP client.
+    Type: String
+    Default: true
+    ConstraintDescription: Only true or false are allowed
+    AllowedValues:
+      - true
+      - false
   CloudFrontCname:
     Description: Custom domain name to use (foo.yourdomain.com)
     Type: String
+
   VerifyFromCfHeaderVal:
     Description: A custom header X-From-CDN with val below be passed to your orgin, to verify request came 
     Type: String    
@@ -97,6 +106,7 @@ Metadata:
       - Label:
           default: "CloudFront Info"
         Parameters:
+          - CreateCloudFront
           - AcmCertificateArn          
           - CloudFrontCname
           - VerifyFromCfHeaderVal
@@ -119,6 +129,9 @@ Metadata:
           - ScaleUpCpuPercentageThreshold    
           - ScaleDownCpuPeriods    
           - ScaleDownCpuPercentageThreshold      
+
+Conditions: 
+  CreateCDN: !Equals [ !Ref CreateCloudFront, true ]
 
 Resources:  
   EcsSecurityGroup:    
@@ -416,6 +429,7 @@ Resources:
 #### Cloudfront and DNS stuff
   CloudFront:  
     Type: AWS::CloudFront::Distribution
+    Condition: CreateCDN
     Properties:
       DistributionConfig:
         Enabled: true
@@ -461,6 +475,7 @@ Resources:
           ErrorCode: 500
   DNSARecord:    
     Type: "AWS::Route53::RecordSet"
+    Condition: CreateCDN
     Properties:
       Comment: !Ref 'AWS::StackName'
       Name: !Ref CloudFrontCname
@@ -471,6 +486,7 @@ Resources:
         DNSName: !GetAtt CloudFront.DomainName
   DNSAAAARecord:    
     Type: "AWS::Route53::RecordSet"
+    Condition: CreateCDN
     Properties:
       Comment: !Ref 'AWS::StackName'
       Name: !Ref CloudFrontCname
@@ -491,9 +507,11 @@ Outputs:
     Value: !GetAtt EcsElasticLoadBalancer.DNSName
   
   CloudFront:
+    Condition: CreateCDN
     Description: CloudFront ID
     Value: !Ref CloudFront
   CNAME:
+    Condition: CreateCDN
     Description: Custom domain for Cloudfront
     Value: !Ref DNSARecord
   

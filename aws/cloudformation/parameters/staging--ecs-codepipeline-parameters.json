@@ -1,24 +1,25 @@
 {
-    "Parameters": {
-        "EcsCfClusterStackName": "abp-fargate--ecs-cluster",
-        "CloudFrontCname": "staging--example.rynop.com",
-        "AuroraVPCSecurityGroup":"AuroraVPCSecurityGroup outputvalue from app-resources.yaml for this stage",
-        "VerifyFromCfHeaderVal": "If using elb, use the same value you used in SSM for X_FROM_CDN for prod",
-        "AcmCertificateArn": "arn:aws:acm:us-east-1:111:certificate/22222-2a50-4e70-b9f0-8f71585ce17b",
-        "TaskIamRoleArn": "app-resources.yaml staging CloudFormation Output key TaskIamRoleArn",
-        "SsmEnvPrefix": "/staging/abp-fargate/master/ecsEnvs/",
-        "TaskCount": "1",
-        "TaskCpuUnits": "256",
-        "TaskMemory": "512",
-        "DeploymentMinHealthyTaskPercent": "50",
-        "DeploymentMaxTaskPercent": "200",
-        "ServiceMaxCapacity": "1",
-        "ServiceMinCapacity": "1",
-        "ServiceScaleUpAdjustment": "1",
-        "ServiceScaleDownAdjustment": "-1",
-        "ScaleUpCpuPeriods": "3",
-        "ScaleUpCpuPercentageThreshold": "50",
-        "ScaleDownCpuPeriods": "10",
-        "ScaleDownCpuPercentageThreshold": "20"
-    }
+  "Parameters": {
+    "EcsCfClusterStackName": "abp-fargate--ecs-cluster",
+    "CreateCloudFront": "true",
+    "CloudFrontCname": "staging--example.rynop.com",
+    "AuroraVPCSecurityGroup": "AuroraVPCSecurityGroup outputvalue from app-resources.yaml for this stage",
+    "VerifyFromCfHeaderVal": "If using elb, use the same value you used in SSM for X_FROM_CDN for prod",
+    "AcmCertificateArn": "arn:aws:acm:us-east-1:111:certificate/22222-2a50-4e70-b9f0-8f71585ce17b",
+    "TaskIamRoleArn": "app-resources.yaml staging CloudFormation Output key TaskIamRoleArn",
+    "SsmEnvPrefix": "/staging/abp-fargate/master/ecsEnvs/",
+    "TaskCount": "1",
+    "TaskCpuUnits": "256",
+    "TaskMemory": "512",
+    "DeploymentMinHealthyTaskPercent": "50",
+    "DeploymentMaxTaskPercent": "200",
+    "ServiceMaxCapacity": "1",
+    "ServiceMinCapacity": "1",
+    "ServiceScaleUpAdjustment": "1",
+    "ServiceScaleDownAdjustment": "-1",
+    "ScaleUpCpuPeriods": "3",
+    "ScaleUpCpuPercentageThreshold": "50",
+    "ScaleDownCpuPeriods": "10",
+    "ScaleDownCpuPercentageThreshold": "20"
+  }
 }
