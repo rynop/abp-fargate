@@ -36,7 +36,7 @@ There are a handful of necessary steps prior to running any aws-blueprint envior
    docker push $ecrRepositoryURI:initial
    ```
 
-1. **One time step**: Create ECS service linked role. Only need to do this once per AWS account.
+1. **One time step**: Create ECS service linked role. Only need to do this once per AWS account.  This may fail if it already exists in your AWS account.
    ```
    aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com --profile
    ```
@@ -129,14 +129,8 @@ To summarize, my intention was to leave it up to the architect to determine if h
 1.  Build & run: `cd cmd/example-webservices; go run main.go`
 1.  Hit endpoint: `curl -v -H 'Content-Type:application/json' -H 'Authorization: Bearer aaa' -H 'X-FROM-CDN: localTest' -d '{"term":"wahooo"}' http://localhost:8080/com.rynop.twirpl.publicservices.Image/CreateGiphy`
 
-## Add dependency example:
+## Tips / Troubleshooting
 
-```
-retool do dep ensure -add github.com/apex/gateway github.com/aws/aws-lambda-go
-```
+- If something is not working, most likely the name of one of the CloudFormation stacks or values in your [CloudFormation parameter files](./aws/cloudformation/parameters/) is wrong.  aws-blueprint uses a convention over configuration philosophy, so naming convention matters.  In general, most names are seperated by `--` (note 2 `-`'s)
+- When deleting an envornmnet, delete the CloudFormation stacks in this order: `*--genbycicd`, `*--cicd`, `*-r`.  Be careful to not delete `*--ecs-cluster` if multiple codebases are sharing the same ECS cluster.
 
-## Building docker image locally
-
-```
-docker build --build-arg CODE_PATH=cmd/example-webservices -t abp-fargate/master:initial .
-```
