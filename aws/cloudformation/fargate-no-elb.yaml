@@ -1,14 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: ECS Service without ELB. Resources and ECS Cluster stacks must already exist.
-Parameters:  
+Parameters:
   EcsCfClusterStackName:
     Type: String
     Description: value of VpcEcsClusterStackName in vpc-ecs-cluster.yaml cloudformation stack (ends with --ecs-cluster)
 
   TaskIamRoleArn:
     Description: ARN of the IAM role the task will assume.  This should be an ouput of your resources cloud formation
-    Type: String  
-  
+    Type: String
+
   ContainerImage:
     Description: The docker image to use in the task definition. ex aaa.dkr.ecr.us-east-1.amazonaws.com/ryan-test:listenport
     Type: String
@@ -16,19 +16,20 @@ Parameters:
   SsmEnvPrefix:
     Description: What path prefix to pull SSM params from to set as env vars for task container.  Ex:/prod/img-manip/master/ResizeImage/ecsEnvs/
     Type: String
-    
+
   TaskCount:
     Default: 1
     Type: Number
   TaskCpuUnits:
-    Default: "256"
+    Default: '256'
     Type: String
-    AllowedValues : ["256","512","1024","2048","4096"]
+    AllowedValues: ['256', '512', '1024', '2048', '4096']
   TaskMemory:
-    Description: "See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#cfn-ecs-taskdefinition-memory"
-    Default: "512"
+    Description: 'See https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ecs-taskdefinition.html#cfn-ecs-taskdefinition-memory'
+    Default: '512'
     Type: String
-    AllowedValues : ["512","1024","2048","4096","5120","6144","7168","8192"]   
+    AllowedValues:
+      ['512', '1024', '2048', '4096', '5120', '6144', '7168', '8192']
   DeploymentMinHealthyTaskPercent:
     Type: Number
     Default: 50
@@ -75,50 +76,50 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
-          default: "Existing ECS Cluster CloudFormation Stack Info"
+          default: 'Existing ECS Cluster CloudFormation Stack Info'
         Parameters:
           - EcsCfClusterStackName
 
       - Label:
-          default: "Task Info"
+          default: 'Task Info'
         Parameters:
-          - ContainerImage 
-          - TaskIamRoleArn   
+          - ContainerImage
+          - TaskIamRoleArn
           - TaskCount
           - TaskCpuUnits
           - TaskMemory
           - DeploymentMinHealthyTaskPercent
           - DeploymentMaxTaskPercent
-          - ServiceMaxCapacity    
-          - ServiceMinCapacity    
-          - ServiceScaleUpAdjustment    
-          - ServiceScaleDownAdjustment    
-          - ScaleUpCpuPeriods    
-          - ScaleUpCpuPercentageThreshold    
-          - ScaleDownCpuPeriods    
+          - ServiceMaxCapacity
+          - ServiceMinCapacity
+          - ServiceScaleUpAdjustment
+          - ServiceScaleDownAdjustment
+          - ScaleUpCpuPeriods
+          - ScaleUpCpuPercentageThreshold
+          - ScaleDownCpuPeriods
           - ScaleDownCpuPercentageThreshold
 
 Resources:
-###Fargate Task
+  ###Fargate Task
   ECSTaskExeAndScaleRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Version: 2008-10-17
         Statement:
-        - Effect: "Allow"
-          Principal:
-            Service:
-              - ecs-tasks.amazonaws.com
-          Action:
-            - sts:AssumeRole    
-        - Effect: Allow
-          Action:
-            - sts:AssumeRole
-          Principal:
-            Service:
-              - application-autoscaling.amazonaws.com                    
-      Path: "/"
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+      Path: '/'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
       Policies:
@@ -126,27 +127,27 @@ Resources:
           PolicyDocument:
             Statement:
               - Action:
-                - application-autoscaling:*
-                - cloudwatch:DescribeAlarms
-                - cloudwatch:PutMetricAlarm
-                - ecs:DescribeServices
-                - ecs:UpdateService            
+                  - application-autoscaling:*
+                  - cloudwatch:DescribeAlarms
+                  - cloudwatch:PutMetricAlarm
+                  - ecs:DescribeServices
+                  - ecs:UpdateService
                 Effect: Allow
                 Resource: '*'
               - Action:
-                - 'ssm:DescribeParameters'
+                  - 'ssm:DescribeParameters'
                 Effect: Allow
                 Resource: '*'
               - Action: #see https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
-                - 'ssm:GetParameter*'
+                  - 'ssm:GetParameter*'
                 Effect: Allow
-                Resource: 
-                  - !Sub "arn:aws:ssm:*:${AWS::AccountId}:parameter/*"              
+                Resource:
+                  - !Sub 'arn:aws:ssm:*:${AWS::AccountId}:parameter/*'
               - Action: #see https://docs.aws.amazon.com/kms/latest/developerguide/iam-policies.html
-                - 'kms:Decrypt'
+                  - 'kms:Decrypt'
                 Effect: Allow
-                Resource: 
-                  - !Sub "arn:aws:kms:*:${AWS::AccountId}:key/*"
+                Resource:
+                  - !Sub 'arn:aws:kms:*:${AWS::AccountId}:key/*'
   TaskLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -164,75 +165,73 @@ Resources:
       Cpu: !Ref TaskCpuUnits
       NetworkMode: awsvpc
       ContainerDefinitions:
-      - Name: !Join [ '--', [ !Ref 'AWS::StackName', 'container' ] ]
-        Image: !Ref ContainerImage
-        Essential: true        
-        Environment: 
-          - Name: APP_STAGE
-            Value: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ]
-          - Name: LISTEN_PORT
-            Value: '80'
-          - Name: AWS_ENV_PATH
-            Value: !Ref SsmEnvPrefix            
-            #Pull rest of Env vars in via https://github.com/Droplr/aws-env        
-        PortMappings:
-        - ContainerPort: 80
-          HostPort: 80
-          Protocol: tcp
-        LogConfiguration:
-          LogDriver: awslogs
-          Options:
-            'awslogs-region': !Ref 'AWS::Region'
-            'awslogs-group': !Ref TaskLogGroup
-            'awslogs-stream-prefix': 'task-stream'  
-####END task
+        - Name: !Join ['--', [!Ref 'AWS::StackName', 'container']]
+          Image: !Ref ContainerImage
+          Essential: true
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: APP_STAGE
+              Value: !Select ['0', !Split ['--', !Ref 'AWS::StackName']]
+            - Name: LISTEN_PORT
+              Value: '80'
+            - Name: AWS_ENV_PATH
+              Value: !Ref SsmEnvPrefix
+              #Pull rest of Env vars in via https://github.com/Droplr/aws-env
+          PortMappings:
+            - ContainerPort: 80
+              HostPort: 80
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              'awslogs-region': !Ref 'AWS::Region'
+              'awslogs-group': !Ref TaskLogGroup
+              'awslogs-stream-prefix': 'task-stream'
+  ####END task
 
-#### Service stuff
-  EcsSecurityGroup:    
+  #### Service stuff
+  EcsSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Join [ '--', [ !Ref 'AWS::StackName', 'ECS' ] ]
+      GroupName: !Join ['--', [!Ref 'AWS::StackName', 'ECS']]
       GroupDescription: ECS Allowed Ports
-      VpcId: 
-        Fn::ImportValue: !Sub "${EcsCfClusterStackName}-VPC"
-      Tags: 
-          - Key: Name
-            Value: !Sub ${AWS::StackName}-ecs-continers
-          - Key: Stage
-            Value: !Sub 
-              - ${Stage}
-              - { Stage: !Select [ "0", !Split [ '--', !Ref 'AWS::StackName' ] ] }          
+      VpcId:
+        Fn::ImportValue: !Sub '${EcsCfClusterStackName}-VPC'
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-ecs-continers
+        - Key: Stage
+          Value: !Sub
+            - ${Stage}
+            - { Stage: !Select ['0', !Split ['--', !Ref 'AWS::StackName']] }
   Service:
     Type: AWS::ECS::Service
     Properties:
       LaunchType: 'FARGATE'
       Cluster: !Ref EcsCfClusterStackName
-      ServiceName: !Join [ '--', [ !Ref 'AWS::StackName', 'service' ] ]
+      ServiceName: !Join ['--', [!Ref 'AWS::StackName', 'service']]
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: !Ref TaskCount
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: 
+          SecurityGroups:
             - !Ref EcsSecurityGroup
           Subnets:
-            - Fn::ImportValue:
-                !Sub "${EcsCfClusterStackName}-PrivateSubnet1"
-            - Fn::ImportValue:
-                !Sub "${EcsCfClusterStackName}-PrivateSubnet2"
-            - Fn::ImportValue:
-                !Sub "${EcsCfClusterStackName}-PrivateSubnet3"
+            - Fn::ImportValue: !Sub '${EcsCfClusterStackName}-PrivateSubnet1'
+            - Fn::ImportValue: !Sub '${EcsCfClusterStackName}-PrivateSubnet2'
+            - Fn::ImportValue: !Sub '${EcsCfClusterStackName}-PrivateSubnet3'
       DeploymentConfiguration:
         MinimumHealthyPercent: !Ref DeploymentMinHealthyTaskPercent
-        MaximumPercent: !Ref DeploymentMaxTaskPercent   
+        MaximumPercent: !Ref DeploymentMaxTaskPercent
   ServiceScalingTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     DependsOn: Service
     Properties:
       MaxCapacity: !Ref ServiceMaxCapacity
       MinCapacity: !Ref ServiceMinCapacity
-      ResourceId:
-        !Sub
+      ResourceId: !Sub
         - service/${ClusterName}/${ServiceName}
         - ClusterName: !Ref EcsCfClusterStackName
           ServiceName: !GetAtt Service.Name
@@ -261,12 +260,22 @@ Resources:
         AdjustmentType: ChangeInCapacity
         Cooldown: 60
         StepAdjustments:
-        - MetricIntervalLowerBound: 0
-          ScalingAdjustment: !Ref ServiceScaleUpAdjustment
+          - MetricIntervalLowerBound: 0
+            ScalingAdjustment: !Ref ServiceScaleUpAdjustment
   CPUAlarmHigh:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: !Join [ '', [ 'Scale up if CPU > ', !Ref ScaleUpCpuPercentageThreshold, '% for ', !Ref ScaleUpCpuPeriods, ' minutes' ] ]
+      AlarmDescription:
+        !Join [
+          '',
+          [
+            'Scale up if CPU > ',
+            !Ref ScaleUpCpuPercentageThreshold,
+            '% for ',
+            !Ref ScaleUpCpuPeriods,
+            ' minutes',
+          ],
+        ]
       MetricName: CPUUtilization
       Namespace: AWS/ECS
       Statistic: Average
@@ -284,7 +293,17 @@ Resources:
   CPUAlarmLow:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription: !Join [ '', [ 'Scale down if CPU < ', !Ref ScaleDownCpuPercentageThreshold, '% for ', !Ref ScaleDownCpuPeriods, ' minutes' ] ]
+      AlarmDescription:
+        !Join [
+          '',
+          [
+            'Scale down if CPU < ',
+            !Ref ScaleDownCpuPercentageThreshold,
+            '% for ',
+            !Ref ScaleDownCpuPeriods,
+            ' minutes',
+          ],
+        ]
       MetricName: CPUUtilization
       Namespace: AWS/ECS
       Statistic: Average
@@ -299,13 +318,13 @@ Resources:
           Value: !Ref EcsCfClusterStackName
         - Name: ServiceName
           Value: !GetAtt Service.Name
-####END Service stuff        
+####END Service stuff
 
 Outputs:
   InternalPorts:
     Description: Internal Host Service Ports.
     Value: 80
-  
+
   Version:
     Description: ECS Cloudformation template version
     Value: 1.0.0
