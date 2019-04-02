@@ -26,8 +26,12 @@ Parameters:
       - true
       - false
   CloudFrontCname:
-    Description: Custom domain name to use (foo.yourdomain.com)
+    Description: Custom domain name to use (staging--api.yourdomain.com)
     Type: String
+    MaxLength: 253
+    MinLength: 5
+    AllowedPattern: "^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\\.){2}[a-zA-Z]{2,63}$"
+    ConstraintDescription: must be a FQDN with 3 parts, ex. staging--api.yourdomain.com     
 
   VerifyFromCfHeaderVal:
     Description: A custom header X-From-CDN with val below be passed to your orgin, to verify request came
